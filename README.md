@@ -66,7 +66,7 @@ There is a special `[default]` section, that will be used if none of the templat
 
 All templates are evaluated top to bottom. The first matching template is applied (except for the default template). More than one matcher can be defined for a template. In those cases, the results of the matchers must both be true to match the template (logical AND).
 
-A more elaborate example can be found in the [charge.config](charge.config) file.
+A more elaborate example can be found in the [charge.config.example](charge.config.example) file.
 
 ### matchers
 
