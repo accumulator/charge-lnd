@@ -5,7 +5,7 @@ fee_ppm = 10
 
 [ignored_channels]
 match = id
-nodes = 02da8d5a759ee9e4438da617cfdb61c87f723fb76c4b6371b877d0347abe953a4f
+#nodes = 02da8d5a759ee9e4438da617cfdb61c87f723fb76c4b6371b877d0347abe953a4f
 strategy = ignore
 
 [expensive]
