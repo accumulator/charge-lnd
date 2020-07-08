@@ -73,7 +73,7 @@ A more elaborate example can be found in the [charge.config.example](charge.conf
 Currently available matchers:
 - **id** (match on channel IDs and node pubkeys. properties: **channels**, **nodes**)
 - **initiator** (match on initiator status. properties: **initiator**)
-- **balance** (match on channel balance. properties: **max_ratio**, **min_ratio**)
+- **balance** (match on channel balance. properties: **max_ratio**, **min_ratio**, **min_capacity**, **max_capacity**)
 - **peersize** (match on peer node size. properties: **min_channels**, **max_channels**, **min_sats**, **max_sats**)
 - **peerpolicy** (match on policy used by peer. properties: **min_base_fee_msat**, **max_base_fee_msat**, **min_fee_ppm**, **max_fee_ppm**)
 - **private** (match on channel private flag. properties: **private**)

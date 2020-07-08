@@ -64,11 +64,15 @@ class Matcher:
 
     def match_by_balance(self, channel, config):
         ratio = channel.local_balance/(channel.local_balance + channel.remote_balance)
-        matches = 'max_ratio' in config or 'min_ratio' in config
+        matches = 'max_ratio' in config or 'min_ratio' in config or 'max_capacity' in config or 'min_capacity' in config
         if 'max_ratio' in config:
             matches = matches and config.getfloat('max_ratio') >= ratio
         if 'min_ratio' in config:
             matches = matches and config.getfloat('min_ratio') <= ratio
+        if 'max_capacity' in config:
+            matches = matches and config.getint('max_capacity') >= channel.capacity
+        if 'min_capacity' in config:
+            matches = matches and config.getint('min_capacity') <= channel.capacity
 
         return matches
 
