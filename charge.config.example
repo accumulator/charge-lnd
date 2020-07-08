@@ -34,5 +34,14 @@ min_ratio = 0.8
 min_capacity = 2000000
 min_sats = 50000000
 strategy = static
-base_fee_msat = 1000
+base_fee_msat = 500
 fee_ppm = 5
+
+[feesforbalance_big_reverse]
+match = balance,peersize
+max_ratio = 0.2
+min_capacity = 2000000
+min_sats = 50000000
+strategy = static
+base_fee_msat = 1000
+fee_ppm = 100
