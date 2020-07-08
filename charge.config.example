@@ -24,6 +24,8 @@ fee_ppm = 100
 [beginner_node]
 match = peersize
 max_sats = 1000000
+min_channels = 4
+max_channels = 8
 strategy = static
 base_fee_msat = 0
 fee_ppm = 1
