@@ -35,7 +35,10 @@ class Lnd:
     def get_credentials(lnd_dir):
         tls_certificate = open(lnd_dir + '/tls.cert', 'rb').read()
         ssl_credentials = grpc.ssl_channel_credentials(tls_certificate)
-        macaroon = codecs.encode(open(lnd_dir + '/data/chain/bitcoin/mainnet/admin.macaroon', 'rb').read(), 'hex')
+        try:
+            macaroon = codecs.encode(open(lnd_dir + '/data/chain/bitcoin/mainnet/charge-lnd.macaroon', 'rb').read(), 'hex')
+        except:
+            macaroon = codecs.encode(open(lnd_dir + '/data/chain/bitcoin/mainnet/admin.macaroon', 'rb').read(), 'hex')
         auth_credentials = grpc.metadata_call_credentials(lambda _, callback: callback([('macaroon', macaroon)], None))
         combined_credentials = grpc.composite_channel_credentials(ssl_credentials, auth_credentials)
         return combined_credentials

@@ -6,8 +6,19 @@ This script matches your open channels against a number of customizable criteria
 
 This script needs a moderately recent lnd (https://github.com/lightningnetwork/lnd) instance running.
 
-You need to have admin rights to control this node.
-By default this script connects to `localhost:10009`, using the macaroon file in `~/.lnd/data/chain/bitcoin/mainnet/admin.macaroon`.
+You don't need to have full admin rights to use charge-lnd. The following access rights are used:
+- `offchain:read`
+- `offchain:write`
+- `info:read`
+
+You can create a suitably limited macaroon by issueing:
+
+```
+$ lncli bakemacaroon offchain:read offchain:write info:read --save_to=~/.lnd/data/chain/bitcoin/mainnet/charge-lnd.macaroon
+```
+
+By default this script connects to `localhost:10009`, using the macaroon file in `~/.lnd/data/chain/bitcoin/mainnet/charge-lnd.macaroon`. If `charge-lnd.macaroon` is not found, `admin.macaroon` will be tried.
+
 If you need to change this, please have a look at the optional arguments `--grpc` and `--lnddir`.
 
 You need to install Python. The gRPC dependencies can be installed by running:
