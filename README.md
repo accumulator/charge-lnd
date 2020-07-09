@@ -64,7 +64,7 @@ If a channel matches the `[friends]` template, the `static` strategy is used, wh
 
 There is a special `[default]` section, that will be used if none of the templates matches a channel. The `[default]` section only contains a strategy, not a match definition.
 
-All templates are evaluated top to bottom. The first matching template is applied (except for the default template). More than one matcher can be defined for a template. In those cases, the results of the matchers must both be true to match the template (logical AND).
+All templates are evaluated top to bottom. The first matching template is applied (except for the default template). More than one matcher can be defined for a template. In those cases, the results of the matchers must all be true to match the template (logical AND).
 
 A more elaborate example can be found in the [charge.config.example](charge.config.example) file.
 

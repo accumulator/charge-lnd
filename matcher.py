@@ -18,9 +18,6 @@ class Matcher:
             if s == 'default':
                 self.default = config[s]
             else:
-                if 'match' not in config[s]:
-                    debug("template %s has no defined match key" % s)
-                    sys.exit(1)
                 self.templates.append(s)
 
     def get_template(self, channel):
@@ -41,8 +38,11 @@ class Matcher:
             'peerpolicy' : self.match_by_peerpolicy,
             'private'    : self.match_by_private
         }
-        matches_template = True
         matchers = template_conf.getlist('match')
+        if matchers is None:
+            return False
+
+        matches_template = True
         for matcher in matchers:
             if not matcher in map:
                 debug("Unknown matcher '%s'" % matcher)
