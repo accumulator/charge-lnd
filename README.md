@@ -1,6 +1,6 @@
 # charge-lnd
 
-This script matches your open channels against a number of customizable criteria and applies a channel policy based on the matching template.
+This script matches your open channels against a number of customizable criteria and applies a channel policy based on the matching section.
 
 ## Installation
 
@@ -50,12 +50,12 @@ optional arguments:
 
 All policies are defined using an INI style config file (defaults to `charge.config` in the current directory)
 
-Each `[section]` defined in the config file describes a 'template'.
-A single template consists of basically two components;
+Each `[section]` defined in the config file describes a policy.
+A single policy consists of basically two components;
 - a match definition
 - a strategy
 
-The match definition allows templates to match against attributes of channels and associated nodes.
+The match definition allows policies to match against attributes of channels and associated nodes.
 The strategy then defines how to set the channel policy.
 
 For example:
@@ -69,13 +69,13 @@ base_fee_msat = 0
 fee_ppm = 1
 ```
 
-This template matches the channels using the `id` matcher. This matcher checks if the channel matches one of the channel IDs in the `channels` property.  This is a comma-separated list of short or full channel IDs.
+This policy matches the channels using the `id` matcher. This matcher checks if the channel matches one of the channel IDs in the `channels` property.  This is a comma-separated list of short or full channel IDs.
 
-If a channel matches the `[friends]` template, the `static` strategy is used, which just takes the `base_fee_msat` and `fee_ppm`  properties defined in the template and applies them to the channel.
+If a channel matches the `[friends]` policy, the `static` strategy is used, which just takes the `base_fee_msat` and `fee_ppm`  properties defined in the policy and applies them to the channel.
 
-There is a special `[default]` section, that will be used if none of the templates matches a channel. The `[default]` section only contains a strategy, not a match definition.
+There is a special `[default]` section, that will be used if none of the policies matches a channel. The `[default]` section only contains a strategy, not a match definition.
 
-All templates are evaluated top to bottom. The first matching template is applied (except for the default template). More than one matcher can be defined for a template. In those cases, the results of the matchers must all be true to match the template (logical AND).
+All policies are evaluated top to bottom. The first matching policy is applied (except for the default policy). More than one matcher can be defined for a policy. In those cases, the results of the matchers must all be true to match the policy (logical AND).
 
 A more elaborate example can be found in the [charge.config.example](charge.config.example) file.
 

@@ -4,7 +4,7 @@ import sys
 def debug(message):
     sys.stderr.write(message + "\n")
 
-class Template:
+class Policy:
     def __init__(self, lnd, name, config):
         self.lnd = lnd
         self.name = name

@@ -29,11 +29,11 @@ def main():
 
     channels = lnd.get_channels()
     for channel in channels:
-        template = matcher.get_template(channel)
+        policy = matcher.get_policy(channel)
         print (fmt.col_lo(fmt.print_chanid(channel.chan_id).ljust(14)) + fmt.print_node(lnd.get_node_info(channel.remote_pubkey)))
-        (base_fee_msat, fee_ppm) = template.execute(channel)
-        print("  template:      %s" % fmt.col_hi(template.name) )
-        print("  strategy:      %s" % fmt.col_hi(template.config.get('strategy')) )
+        (base_fee_msat, fee_ppm) = policy.execute(channel)
+        print("  policy:        %s" % fmt.col_hi(policy.name) )
+        print("  strategy:      %s" % fmt.col_hi(policy.config.get('strategy')) )
         if base_fee_msat is not None:
             print("  base_fee_msat: %s" % fmt.col_hi(base_fee_msat) )
         if fee_ppm is not  None:

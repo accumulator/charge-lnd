@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import sys
-from template import Template
+from policy import Policy
 import fmt
 
 def debug(message):
@@ -11,25 +11,25 @@ class Matcher:
         self.lnd = lnd
         self.config = config
         self.default = None
-        self.templates = []
+        self.policies = []
 
         sections = config.sections()
         for s in sections:
             if s == 'default':
                 self.default = config[s]
             else:
-                self.templates.append(s)
+                self.policies.append(s)
 
-    def get_template(self, channel):
-        # iterate templates, find first match based on matchers. If no match, use default
-        for template in self.templates:
-            template_conf = self.config[template]
-            if self.eval_matchers(channel, template_conf):
-                return Template(self.lnd, template, template_conf)
+    def get_policy(self, channel):
+        # iterate policies, find first match based on matchers. If no match, use default
+        for policy in self.policies:
+            policy_conf = self.config[policy]
+            if self.eval_matchers(channel, policy_conf):
+                return Policy(self.lnd, policy, policy_conf)
 
-        return Template(self.lnd, 'default', self.default);
+        return Policy(self.lnd, 'default', self.default);
 
-    def eval_matchers(self, channel, template_conf):
+    def eval_matchers(self, channel, policy_conf):
         map = {
             'id'         : self.match_by_id,
             'initiator'  : self.match_by_initiator,
@@ -38,17 +38,17 @@ class Matcher:
             'peerpolicy' : self.match_by_peerpolicy,
             'private'    : self.match_by_private
         }
-        matchers = template_conf.getlist('match')
+        matchers = policy_conf.getlist('match')
         if matchers is None:
             return False
 
-        matches_template = True
+        matches_policy = True
         for matcher in matchers:
             if not matcher in map:
                 debug("Unknown matcher '%s'" % matcher)
                 sys.exit(1)
-            matches_template = matches_template and map[matcher](channel, template_conf)
-        return matches_template
+            matches_policy = matches_policy and map[matcher](channel, policy_conf)
+        return matches_policy
 
     def match_by_id(self, channel, config):
         if 'channels' in config and channel.chan_id in [fmt.parse_channel_id(x) for x in config.getlist('channels')]:
