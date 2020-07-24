@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import sys
+import fmt
 from electrum import Electrum
 
 def debug(message):
@@ -16,6 +17,7 @@ class Policy:
             'ignore'      : self.strategy_ignore,
             'static'      : self.strategy_static,
             'match_peer'  : self.strategy_match_peer,
+            'cost'        : self.strategy_cost,
             'onchain_fee' : self.strategy_onchain_fee,
         }
         strategy = self.config.get('strategy', 'ignore')
@@ -36,6 +38,23 @@ class Policy:
         my_pubkey = self.lnd.get_own_pubkey()
         peernode_policy = chan_info.node1_policy if chan_info.node2_pub == my_pubkey else chan_info.node2_policy
         return (peernode_policy.fee_base_msat, peernode_policy.fee_rate_milli_msat)
+
+    def strategy_cost(self, channel):
+        chan_info = self.lnd.get_chan_info(channel.chan_id)
+        txid = chan_info.chan_point.split(':')[0]
+        (block, tx, out) = fmt.lnd_to_cl_scid(channel.chan_id)
+        txns = self.lnd.get_txns(start_height=block, end_height=block)
+        chan_open_tx = None
+        for tx in txns.transactions:
+            if txid == tx.tx_hash:
+                chan_open_tx = tx
+
+        # only take channel-open cost into account. TODO: also support coop close & force close scenarios
+        if chan_open_tx is not None:
+            ppm = int(self.config.getfloat('cost_factor',1.0) * 1_000_000 * chan_open_tx.total_fees / chan_info.capacity)
+        else:
+            ppm = 1 # tx not found, incoming channel, default to 1
+        return (self.config.getint('base_fee_msat'),ppm)
 
     def strategy_onchain_fee(self, channel):
         if not Electrum.host or not Electrum.port:

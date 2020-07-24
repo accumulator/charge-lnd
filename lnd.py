@@ -72,6 +72,12 @@ class Lnd:
             time_lock_delta=my_policy.time_lock_delta
         ))
 
+    def get_txns(self, start_height = None, end_height = None):
+        return self.stub.GetTransactions(ln.GetTransactionsRequest(
+            start_height=start_height,
+            end_height=end_height
+        ))
+
     def get_graph(self):
         if self.graph is None:
             self.graph = self.stub.DescribeGraph(ln.ChannelGraphRequest(include_unannounced=True))

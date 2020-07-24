@@ -9,12 +9,13 @@ This script needs a moderately recent lnd (https://github.com/lightningnetwork/l
 You don't need to have full admin rights to use charge-lnd. The following access rights are used:
 - `offchain:read`
 - `offchain:write`
+- `onchain:read`
 - `info:read`
 
 You can create a suitably limited macaroon by issueing:
 
 ```
-$ lncli bakemacaroon offchain:read offchain:write info:read --save_to=~/.lnd/data/chain/bitcoin/mainnet/charge-lnd.macaroon
+$ lncli bakemacaroon offchain:read offchain:write onchain:read info:read --save_to=~/.lnd/data/chain/bitcoin/mainnet/charge-lnd.macaroon
 ```
 
 By default this script connects to `localhost:10009`, using the macaroon file in `~/.lnd/data/chain/bitcoin/mainnet/charge-lnd.macaroon`. If `charge-lnd.macaroon` is not found, `admin.macaroon` will be tried.
@@ -96,6 +97,7 @@ Currently available matchers:
 - **ignore** (ignores the channel)
 - **static** (sets fixed base fee and fee rate values. properties: **base_fee_msat**, **fee_ppm**)
 - **match_peer** (sets the same base fee and fee rate values as the peer)
+- **cost** (calculate cost for opening channel, and set ppm to cover cost when channel depletes. properties: **cost_factor**)
 - **onchain_fee** (sets the fees to a % equivalent of a standard onchain payment of **onchain_fee_btc** BTC within **onchain_fee_numblocks** blocks.
   Requires --electrum-server to be specified. **base_fee_msat** is used if defined.)
 
