@@ -38,12 +38,15 @@ $ pip3 install -r requirements.txt
 charge-lnd takes only a minimal set of parameters:
 
 ```
-usage: charge-lnd.py [-h] [--lnddir LNDDIR] [--grpc GRPC] [-c CONFIG]
+usage: charge-lnd.py [-h] [--lnddir LNDDIR] [--grpc GRPC]
+                     [--electrum-server ELECTRUM_SERVER] [-c CONFIG]
 
 optional arguments:
   -h, --help            show this help message and exit
   --lnddir LNDDIR       (default ~/.lnd) lnd directory
   --grpc GRPC           (default localhost:10009) lnd gRPC endpoint
+  --electrum-server ELECTRUM_SERVER
+                        (no default) electrum server host:port
   -c CONFIG, --config CONFIG
                         (default: charge.config) path to config file
 ```
@@ -93,6 +96,8 @@ Currently available matchers:
 - **ignore** (ignores the channel)
 - **static** (sets fixed base fee and fee rate values. properties: **base_fee_msat**, **fee_ppm**)
 - **match_peer** (sets the same base fee and fee rate values as the peer)
+- **onchain_fee** (sets the fees to a % equivalent of a standard onchain payment of **onchain_fee_btc** BTC within **onchain_fee_numblocks** blocks.
+  Requires --electrum-server to be specified. **base_fee_msat** is used if defined.)
 
 ## Contributing
 

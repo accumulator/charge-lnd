@@ -9,6 +9,7 @@ colorama.init()
 
 from lnd import Lnd
 from matcher import Matcher
+from electrum import Electrum
 import fmt
 
 MAX_CHANNEL_CAPACITY = 16777215
@@ -21,6 +22,9 @@ def main():
     arguments = argument_parser.parse_args()
 
     lnd = Lnd(arguments.lnddir, arguments.grpc)
+
+    if arguments.electrum_server:
+        Electrum.set_server(arguments.electrum_server)
 
     config = configparser.ConfigParser(converters={'list': lambda x: [i.strip() for i in x.split(',')]})
     config.read(arguments.config)
@@ -51,6 +55,9 @@ def get_argument_parser():
                         default="localhost:10009",
                         dest="grpc",
                         help="(default localhost:10009) lnd gRPC endpoint")
+    parser.add_argument("--electrum-server",
+                        dest="electrum_server",
+                        help="(no default) electrum server host:port")
     parser.add_argument("-c", "--config",
                         default="charge.config",
                         help="(default: charge.config) path to config file")
