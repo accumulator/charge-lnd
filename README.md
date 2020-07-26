@@ -64,18 +64,18 @@ The strategy then defines how to set the channel policy.
 
 For example:
 ```
-[friends]
-match = id
-channels = 634674x1877x1, 697111262856151041
+[example-policy]
+match = balance
+min_capacity = 500000
 
 strategy = static
-base_fee_msat = 0
-fee_ppm = 1
+base_fee_msat = 1000
+fee_ppm = 10
 ```
 
-This policy matches the channels using the `id` matcher. This matcher checks if the channel matches one of the channel IDs in the `channels` property.  This is a comma-separated list of short or full channel IDs.
+This policy matches the channels using the `balance` matcher. This matcher checks channel capacity/ratio attributes. In this example `min_capacity` is specified. Only channels with at least 500000 sats total capacity will match.
 
-If a channel matches the `[friends]` policy, the `static` strategy is used, which just takes the `base_fee_msat` and `fee_ppm`  properties defined in the policy and applies them to the channel.
+If a channel matches this policy, the `static` strategy is then used, which takes the `base_fee_msat` and `fee_ppm`  properties defined in the policy and applies them to the channel.
 
 There is a special `[default]` section, that will be used if none of the policies matches a channel. The `[default]` section only contains a strategy, not a match definition.
 
