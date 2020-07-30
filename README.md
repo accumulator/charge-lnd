@@ -55,43 +55,51 @@ optional arguments:
 All policies are defined using an INI style config file (defaults to `charge.config` in the current directory)
 
 Each `[section]` defined in the config file describes a policy.
-A single policy consists of basically two components;
-- a match definition
-- a strategy
+A single policy consists of;
+- a set of properties to match against the channel/node
+- a fee strategy
 
-The match definition allows policies to match against attributes of channels and associated nodes.
-The strategy then defines how to set the channel policy.
+The defined properties are compared against the channels and associated nodes.
+The fee strategy then defines how to set the channel fees.
 
 For example:
 ```
 [example-policy]
-match = balance
-min_capacity = 500000
+chan.min_capacity = 500000
 
 strategy = static
 base_fee_msat = 1000
 fee_ppm = 10
 ```
 
-This policy matches the channels using the `balance` matcher. This matcher checks channel capacity/ratio attributes. In this example `min_capacity` is specified. Only channels with at least 500000 sats total capacity will match.
+This policy matches the channels against the `chan.min_capacity` property. Only channels with at least 500000 sats total capacity will match.
 
 If a channel matches this policy, the `static` strategy is then used, which takes the `base_fee_msat` and `fee_ppm`  properties defined in the policy and applies them to the channel.
 
-There is a special `[default]` section, that will be used if none of the policies matches a channel. The `[default]` section only contains a strategy, not a match definition.
+There is a special `[default]` section, that will be used if none of the policies matches a channel. The `[default]` section only contains a strategy, not any matching properties.
 
-All policies are evaluated top to bottom. The first matching policy is applied (except for the default policy). More than one matcher can be defined for a policy. In those cases, the results of the matchers must all be true to match the policy (logical AND).
-
+All policies are evaluated top to bottom. The first matching policy is applied (except for the default policy).
 A more elaborate example can be found in the [charge.config.example](charge.config.example) file.
 
-### matchers
+### properties
 
-Currently available matchers:
-- **id** (match on channel IDs and node pubkeys. properties: **channels**, **nodes**)
-- **initiator** (match on initiator status. properties: **initiator**)
-- **balance** (match on channel balance. properties: **max_ratio**, **min_ratio**, **min_capacity**, **max_capacity**)
-- **peersize** (match on peer node size. properties: **min_channels**, **max_channels**, **min_sats**, **max_sats**)
-- **peerpolicy** (match on policy used by peer. properties: **min_base_fee_msat**, **max_base_fee_msat**, **min_fee_ppm**, **max_fee_ppm**)
-- **private** (match on channel private flag. properties: **private**)
+Currently available properties:
+- **chan.id** (match on channel IDs (list))
+- **chan.initiator** (match on initiator status)
+- **chan.max_ratio** (match on channel ratio)
+- **chan.min_ratio** (match on channel ratio)
+- **chan.min_capacity** (match on channel capacity)
+- **chan.max_capacity** (match on channel capacity)
+- **chan.min_base_fee_msat** (match on channel peer policy)
+- **chan.max_base_fee_msat** (match on channel peer policy)
+- **chan.min_fee_ppm** (match on channel peer policy)
+- **chan.max_fee_ppm** (match on channel peer policy)
+- **chan.private** (match on channel private flag)
+- **node.id** (match on node pubkeys (list))
+- **node.min_channels** (match on node # of channels)
+- **node.max_channels** (match on node # of channels)
+- **node.min_sats** (match on node total capacity)
+- **node.max_sats** (match on node total capacity)
 
 ### strategies
 - **ignore** (ignores the channel)

@@ -5,8 +5,7 @@ fee_ppm = 10
 
 [ignored_channels]
 # don't let charge-lnd set fees (strategy=ignore) for channels to/from the specified nodes
-match = id
-nodes = 02da8d5a759ee9e4438da617cfdb61c87f723fb76c4b6371b877d0347abe953a4f,
+node.id = 02da8d5a759ee9e4438da617cfdb61c87f723fb76c4b6371b877d0347abe953a4f,
   0266ad254117f16f16c3457e081e6207e91c5e414477a208cf4d9c633322799038
 
 strategy = ignore
@@ -14,15 +13,14 @@ strategy = ignore
 [expensive]
 # match channels where the peer node has set a high (>=1000 ppm) fee rate
 # and set the same fee rate on our side (strategy=match_peer)
-match = peerpolicy
-min_fee_ppm = 1000
+chan.min_fee_ppm = 1000
 
 strategy = match_peer
 
 [leafnode]
 # charge non-routing (private=true) peers a bit more for our service
-match = private
-private = true
+chan.private = true
+
 strategy = static
 base_fee_msat = 1000
 fee_ppm = 100
@@ -30,10 +28,9 @@ fee_ppm = 100
 [beginner-node]
 # set lower fees on channels with smaller peers, that have few channels (4-8 channels) total
 # and limited node size (max_sats=1000000)
-match = peersize
-max_sats = 1000000
-min_channels = 4
-max_channels = 8
+node.max_sats = 1000000
+node.min_channels = 4
+node.max_channels = 8
 
 strategy = static
 base_fee_msat = 0
@@ -42,10 +39,9 @@ fee_ppm = 1
 [autobalance]
 # 'autobalance' (lower fees so using outbound is more attractive) larger channels (min_capacity 2M sats)
 # to larger nodes (node has at least 5M sats) if balance ratio >= 0.9 (more than 90% on our side)
-match = balance,peersize
-min_ratio = 0.9
-min_capacity = 2000000
-min_sats = 50000000
+chan.min_ratio = 0.9
+chan.min_capacity = 2000000
+node.min_sats = 50000000
 
 strategy = static
 base_fee_msat = 500
