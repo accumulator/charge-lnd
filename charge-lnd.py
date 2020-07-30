@@ -3,6 +3,7 @@
 import argparse
 import configparser
 import sys
+import os
 
 import colorama
 colorama.init()
@@ -29,6 +30,10 @@ def main():
     config = configparser.ConfigParser(converters={'list': lambda x: [i.strip() for i in x.split(',')]})
     config.read(arguments.config)
 
+    if not os.path.exists(arguments.config):
+        debug("Config file not found")
+        return False
+
     matcher = Matcher(lnd, config)
 
     channels = lnd.get_channels()
@@ -44,6 +49,8 @@ def main():
                 print("  fee_ppm:       %s" % fmt.col_hi(fee_ppm) )
         if fee_ppm is not None or base_fee_msat is not None:
             lnd.update_chan_policy(channel.chan_id, base_fee_msat, fee_ppm)
+
+    return True
 
 def get_argument_parser():
     parser = argparse.ArgumentParser()
