@@ -34,14 +34,14 @@ def main():
     channels = lnd.get_channels()
     for channel in channels:
         policy = matcher.get_policy(channel)
-        print (fmt.col_lo(fmt.print_chanid(channel.chan_id).ljust(14)) + fmt.print_node(lnd.get_node_info(channel.remote_pubkey)))
+        print (fmt.col_lo(fmt.print_chanid(channel.chan_id).ljust(14)) + fmt.print_node(lnd.get_node_info(channel.remote_pubkey)) + ' ➜ ' + fmt.col_hi(policy.name))
         (base_fee_msat, fee_ppm) = policy.execute(channel)
-        print("  policy:        %s" % fmt.col_hi(policy.name) )
-        print("  strategy:      %s" % fmt.col_hi(policy.config.get('strategy')) )
-        if base_fee_msat is not None:
-            print("  base_fee_msat: %s" % fmt.col_hi(base_fee_msat) )
-        if fee_ppm is not  None:
-            print("  fee_ppm:       %s" % fmt.col_hi(fee_ppm) )
+        if arguments.verbose:
+            print("  strategy:      %s" % fmt.col_hi(policy.config.get('strategy')) )
+            if base_fee_msat is not None:
+                print("  base_fee_msat: %s" % fmt.col_hi(base_fee_msat) )
+            if fee_ppm is not  None:
+                print("  fee_ppm:       %s" % fmt.col_hi(fee_ppm) )
         if fee_ppm is not None or base_fee_msat is not None:
             lnd.update_chan_policy(channel.chan_id, base_fee_msat, fee_ppm)
 
@@ -57,7 +57,10 @@ def get_argument_parser():
                         help="(default localhost:10009) lnd gRPC endpoint")
     parser.add_argument("--electrum-server",
                         dest="electrum_server",
-                        help="(no default) electrum server host:port")
+                        help="(optional, no default) electrum server host:port")
+    parser.add_argument("-v", "--verbose",
+                        action="store_true",
+                        help="Be more verbose")
     parser.add_argument("-c", "--config",
                         default="charge.config",
                         help="(default: charge.config) path to config file")
