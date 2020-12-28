@@ -48,6 +48,7 @@ optional arguments:
   --grpc GRPC           (default localhost:10009) lnd gRPC endpoint
   --electrum-server ELECTRUM_SERVER
                         (no default) electrum server host:port
+  --dry-run             Do not perform actions (for testing), print what we would do to stdout
   -c CONFIG, --config CONFIG
                         (default: charge.config) path to config file
 ```

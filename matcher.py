@@ -96,6 +96,8 @@ class Matcher:
             return False
 
         chan_info = self.lnd.get_chan_info(channel.chan_id)
+        if not chan_info:
+            return False
         my_pubkey = self.lnd.get_own_pubkey()
         peernode_policy = chan_info.node1_policy if chan_info.node2_pub == my_pubkey else chan_info.node2_policy
 
