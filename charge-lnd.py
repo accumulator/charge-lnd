@@ -48,7 +48,7 @@ def main():
             if fee_ppm is not  None:
                 print("  fee_ppm:       %s" % fmt.col_hi(fee_ppm) )
         if fee_ppm is not None or base_fee_msat is not None:
-            lnd.update_chan_policy(channel.chan_id, base_fee_msat, fee_ppm)
+            lnd.update_chan_policy(channel.chan_id, base_fee_msat, fee_ppm, arguments.dry_run)
 
     return True
 
@@ -64,7 +64,11 @@ def get_argument_parser():
                         help="(default localhost:10009) lnd gRPC endpoint")
     parser.add_argument("--electrum-server",
                         dest="electrum_server",
-                        help="(optional, no default) electrum server host:port")
+                        help="(optional, no default) electrum server host:port . Needed for onchain_fee.")
+    parser.add_argument("--dry-run",
+                        dest="dry_run",
+                        action="store_true",
+                        help="Do not perform actions (for testing), print what we would do to stdout")
     parser.add_argument("-v", "--verbose",
                         action="store_true",
                         help="Be more verbose")

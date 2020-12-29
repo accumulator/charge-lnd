@@ -55,22 +55,30 @@ class Lnd:
 
     def get_chan_info(self, chanid):
         if not chanid in self.chan_info:
-            self.chan_info[chanid] = self.stub.GetChanInfo(ln.ChanInfoRequest(chan_id=chanid))
+            try:
+                self.chan_info[chanid] = self.stub.GetChanInfo(ln.ChanInfoRequest(chan_id=chanid))
+            except:
+                print("Failed to lookup {}".format(chanid),file=sys.stderr)
+                return None
         return self.chan_info[chanid]
 
-    def update_chan_policy(self, chanid, base_fee_msat, fee_ppm):
+    def update_chan_policy(self, chanid, base_fee_msat, fee_ppm, dry_run=False):
         chan_info = self.get_chan_info(chanid)
+        if not chan_info:
+            return None
         channel_point = ln.ChannelPoint(
             funding_txid_str=chan_info.chan_point.split(':')[0],
             output_index=int(chan_info.chan_point.split(':')[1])
         )
         my_policy = chan_info.node1_policy if chan_info.node1_pub == self.get_own_pubkey() else chan_info.node2_policy
-        return self.stub.UpdateChannelPolicy(ln.PolicyUpdateRequest(
-            chan_point=channel_point,
-            base_fee_msat=(base_fee_msat if base_fee_msat is not None else my_policy.fee_base_msat),
-            fee_rate=fee_ppm/1000000 if fee_ppm is not None else my_policy.fee_rate_milli_msat/1000000,
-            time_lock_delta=my_policy.time_lock_delta
-        ))
+        if not dry_run:
+        # Regular run
+            return self.stub.UpdateChannelPolicy(ln.PolicyUpdateRequest(
+                chan_point=channel_point,
+                base_fee_msat=(base_fee_msat if base_fee_msat is not None else my_policy.fee_base_msat),
+                fee_rate=fee_ppm/1000000 if fee_ppm is not None else my_policy.fee_rate_milli_msat/1000000,
+                time_lock_delta=my_policy.time_lock_delta
+            ))
 
     def get_txns(self, start_height = None, end_height = None):
         return self.stub.GetTransactions(ln.GetTransactionsRequest(
