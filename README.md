@@ -96,7 +96,7 @@ Currently available properties:
 - **chan.min_fee_ppm** (match on channel peer policy)
 - **chan.max_fee_ppm** (match on channel peer policy)
 - **chan.private** (match on channel private flag)
-- **node.id** (match on node pubkeys (list))
+- **node.id** (match on node pubkeys (comma separated list, or 1-node-per line in a file using `file://./friends.list`
 - **node.min_channels** (match on node # of channels)
 - **node.max_channels** (match on node # of channels)
 - **node.min_sats** (match on node total capacity)

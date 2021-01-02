@@ -2,6 +2,7 @@
 import sys
 from policy import Policy
 import fmt
+import re
 
 def debug(message):
     sys.stderr.write(message + "\n")
@@ -55,8 +56,20 @@ class Matcher:
                 debug("Unknown property '%s'" % key)
                 sys.exit(1)
 
-        if 'node.id' in config and not channel.remote_pubkey in config.getlist('node.id'):
-            return False
+        if 'node.id' in config:
+            # Allow for file:// config
+            if 'file://' in config.get('node.id'):
+                with open(config.get('node.id').replace("file://",""),'r') as idfile:
+                    raw_ids=idfile.read().splitlines()
+                idlist=[]
+                for raw_id in raw_ids:
+                    pub_key=re.match("^([0-9a-z]{66})",raw_id).group(0)
+                    idlist.append(pub_key)
+            else:
+                idlist=config.getlist('node.id')
+            # Do the matching
+            if not channel.remote_pubkey in idlist:
+                return False
 
         node_info = self.lnd.get_node_info(channel.remote_pubkey)
 
