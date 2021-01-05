@@ -11,9 +11,9 @@ node.id = 02da8d5a759ee9e4438da617cfdb61c87f723fb76c4b6371b877d0347abe953a4f,
 strategy = ignore
 
 [expensive]
-# match channels where the peer node has set a high (>=1000 ppm) fee rate
+# match channels where the peer node has set a high (>=8000 ppm) fee rate
 # and set the same fee rate on our side (strategy=match_peer)
-chan.min_fee_ppm = 1000
+chan.min_fee_ppm = 8000
 
 strategy = match_peer
 
@@ -46,3 +46,27 @@ node.min_sats = 50000000
 strategy = static
 base_fee_msat = 500
 fee_ppm = 5
+
+[pool-policy]
+# use a list of channels exported from Lightning Pool to set a policy for channels that we initiated by selling liquidity using Lightning Pool
+chan.id = file://./pool-channels.txt
+strategy = static
+base_fee_msat = 500
+fee_ppm = 1
+
+[recover-cost]
+# use cost strategy if we are the initiator, using a base fee of 1 sat, and a cost_factor of 1.5 to recover 150% of costs when
+# channel is depleted to 100% outgoing
+initiator = true
+strategy = cost
+base_fee_msat = 1000
+cost_factor = 1.5
+
+#[on-chain-competitive]
+# (commented out this policy as it doesn't work without setting --electrum-server command line option and we want this example to be be able to be used as-is)
+# If an on-chain TX of 0.1 BTC within 6 blocks would amount to a 0.0001 fee (=0.1%), this policy sets the channel fee to 0.1% (or 1000 ppm)
+#node.id = 03864ef025fde8fb587d989186ce6a4a186895ee44a926bfc370e2c366597a3f8f
+#strategy = onchain_fee
+#base_fee_msat = 1000
+#onchain_fee_btc = 0.1
+#onchain_fee_numblocks = 6
