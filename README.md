@@ -63,7 +63,11 @@ A single policy consists of;
 The defined properties are compared against the channels and associated nodes.
 The fee strategy then defines how to set the channel fees.
 
-For example:
+There is a special `[default]` section, that will be used if none of the policies matches a channel. The `[default]` section only contains a strategy, not any matching properties.
+
+All policies are evaluated top to bottom. The first matching policy is applied (except for the default policy).
+
+A simple example:
 ```
 [example-policy]
 chan.min_capacity = 500000
@@ -73,24 +77,43 @@ base_fee_msat = 1000
 fee_ppm = 10
 ```
 
+Explanation:
+
 This policy matches the channels against the `chan.min_capacity` property. Only channels with at least 500000 sats total capacity will match.
 
 If a channel matches this policy, the `static` strategy is then used, which takes the `base_fee_msat` and `fee_ppm`  properties defined in the policy and applies them to the channel.
 
-There is a special `[default]` section, that will be used if none of the policies matches a channel. The `[default]` section only contains a strategy, not any matching properties.
+### More examples
 
-For example:
+Maintain a friends list with lower fees:
 ```
-[default]
+[friends]
+node.id = file://./friends.list
 strategy = static
-base_fee_msat = 1000
+base_fee_msat = 10
 fee_ppm = 10
 ```
 
-All policies are evaluated top to bottom. The first matching policy is applied (except for the default policy).
-A more elaborate example can be found in the [charge.config.example](charge.config.example) file.
+Use routing fees to nudge channel balances toward 50/50 channel ratios:
+```
+[discourage-routing-out-of-balance]
+chan.max_ratio = 0.1
+chan.min_capacity = 250000
+strategy = static
+base_fee_msat = 10000
+fee_ppm = 500
 
-### properties
+[encourage-routing-to-balance]
+chan.min_ratio = 0.9
+chan.min_capacity = 250000
+strategy = static
+base_fee_msat = 1
+fee_ppm = 2
+```
+
+More elaborate examples can be found in the [charge.config.example](charge.config.example) file.
+
+### Properties
 
 Currently available properties:
 - **chan.id** (match on channel IDs (comma separated list, or 1-chan-per line in a file reference e.g. `file://./chans.list`))
@@ -110,7 +133,7 @@ Currently available properties:
 - **node.min_sats** (match on node total capacity)
 - **node.max_sats** (match on node total capacity)
 
-### strategies
+### Strategies
 - **ignore** (ignores the channel)
 - **static** (sets fixed base fee and fee rate values. properties: **base_fee_msat**, **fee_ppm**)
 - **match_peer** (sets the same base fee and fee rate values as the peer)
