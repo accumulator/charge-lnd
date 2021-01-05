@@ -79,6 +79,14 @@ If a channel matches this policy, the `static` strategy is then used, which take
 
 There is a special `[default]` section, that will be used if none of the policies matches a channel. The `[default]` section only contains a strategy, not any matching properties.
 
+For example:
+```
+[default]
+strategy = static
+base_fee_msat = 1000
+fee_ppm = 10
+```
+
 All policies are evaluated top to bottom. The first matching policy is applied (except for the default policy).
 A more elaborate example can be found in the [charge.config.example](charge.config.example) file.
 
