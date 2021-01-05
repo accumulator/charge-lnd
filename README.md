@@ -93,8 +93,8 @@ A more elaborate example can be found in the [charge.config.example](charge.conf
 ### properties
 
 Currently available properties:
-- **chan.id** (match on channel IDs (list))
-- **chan.initiator** (match on initiator status)
+- **chan.id** (match on channel IDs (comma separated list, or 1-chan-per line in a file reference e.g. `file://./chans.list`))
+- **chan.initiator** (match on initiator status, true if we are initiator)
 - **chan.max_ratio** (match on channel ratio)
 - **chan.min_ratio** (match on channel ratio)
 - **chan.min_capacity** (match on channel capacity)
@@ -104,7 +104,7 @@ Currently available properties:
 - **chan.min_fee_ppm** (match on channel peer policy)
 - **chan.max_fee_ppm** (match on channel peer policy)
 - **chan.private** (match on channel private flag)
-- **node.id** (match on node pubkeys (comma separated list, or 1-node-per line in a file using `file://./friends.list`
+- **node.id** (match on node pubkeys (comma separated list, or 1-node-per line in a file reference e.g. `file://./friends.list`
 - **node.min_channels** (match on node # of channels)
 - **node.max_channels** (match on node # of channels)
 - **node.min_sats** (match on node total capacity)

@@ -7,6 +7,31 @@ import re
 def debug(message):
     sys.stderr.write(message + "\n")
 
+def read_nodelist(url):
+    with open(url.replace("file://",""),'r') as idfile:
+        raw_ids = idfile.read().splitlines()
+    node_list = []
+    for raw_id in raw_ids:
+        match = re.match("^([0-9a-z]{66})", raw_id)
+        if match:
+            node_list.append(match.group(0))
+        else:
+            debug("Ignored: invalid node pubkey '%s' in '%s'" % (raw_id,url))
+    return node_list
+
+def read_chanlist(url):
+    with open(url.replace("file://",""),'r') as idfile:
+        raw_ids = idfile.read().splitlines()
+    chan_list = []
+    for raw_id in raw_ids:
+        try:
+            chan_id = fmt.parse_channel_id(raw_id)
+            chan_list.append(chan_id)
+        except:
+            debug("Ignored: invalid channel id '%s' in '%s'" % (raw_id,url))
+
+    return chan_list
+
 class Matcher:
     def __init__(self, lnd, config):
         self.lnd = lnd
@@ -57,18 +82,16 @@ class Matcher:
                 sys.exit(1)
 
         if 'node.id' in config:
-            # Allow for file:// config
-            if 'file://' in config.get('node.id'):
-                with open(config.get('node.id').replace("file://",""),'r') as idfile:
-                    raw_ids=idfile.read().splitlines()
-                idlist=[]
-                for raw_id in raw_ids:
-                    pub_key=re.match("^([0-9a-z]{66})",raw_id).group(0)
-                    idlist.append(pub_key)
-            else:
-                idlist=config.getlist('node.id')
+            # expand file:// entries
+            config_items = config.getlist('node.id')
+            node_list = []
+            for item in config_items:
+                if item.startswith('file://'):
+                    node_list = node_list + read_nodelist(item)
+                else:
+                    node_list.append(item)
             # Do the matching
-            if not channel.remote_pubkey in idlist:
+            if not channel.remote_pubkey in node_list:
                 return False
 
         node_info = self.lnd.get_node_info(channel.remote_pubkey)
@@ -91,8 +114,19 @@ class Matcher:
                 debug("Unknown property '%s'" % key)
                 sys.exit(1)
 
-        if 'chan.id' in config and not channel.chan_id in [fmt.parse_channel_id(x) for x in config.getlist('chan.id')]:
-            return False
+        if 'chan.id' in config:
+            # expand file:// entries
+            config_items = config.getlist('chan.id')
+            chan_list = []
+            for item in config_items:
+                if item.startswith('file://'):
+                    chan_list = chan_list + read_chanlist(item)
+                else:
+                    chan_list.append(fmt.parse_channel_id(item))
+
+            if not channel.chan_id in chan_list:
+                return False
+
         if 'chan.initiator' in config and not channel.initiator == config.getboolean('chan.initiator'):
             return False
         if 'chan.private' in config and not channel.private == config.getboolean('chan.private'):
