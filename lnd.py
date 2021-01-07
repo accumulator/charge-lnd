@@ -30,6 +30,7 @@ class Lnd:
         self.channels = None
         self.node_info = {}
         self.chan_info = {}
+        self.feereport = self.get_feereport()
 
     @staticmethod
     def get_credentials(lnd_dir):
@@ -48,6 +49,15 @@ class Lnd:
             self.info = self.stub.GetInfo(ln.GetInfoRequest())
         return self.info
 
+    def get_feereport(self):
+        feereport = self.stub.FeeReport(ln.FeeReportRequest())
+        feedict={}
+        for channel_fee in feereport.channel_fees:
+            feedict[channel_fee.chan_id]={
+                    'base_fee_msat' : channel_fee.base_fee_msat,
+                    'fee_ppm' : channel_fee.fee_per_mil,
+                    }
+        return feedict
     def get_node_info(self, nodepubkey):
         if not nodepubkey in self.node_info:
             self.node_info[nodepubkey] = self.stub.GetNodeInfo(ln.NodeInfoRequest(pub_key=nodepubkey))
@@ -62,7 +72,7 @@ class Lnd:
                 return None
         return self.chan_info[chanid]
 
-    def update_chan_policy(self, chanid, base_fee_msat, fee_ppm, dry_run=False):
+    def update_chan_policy(self, chanid, base_fee_msat, fee_ppm):
         chan_info = self.get_chan_info(chanid)
         if not chan_info:
             return None
@@ -71,14 +81,12 @@ class Lnd:
             output_index=int(chan_info.chan_point.split(':')[1])
         )
         my_policy = chan_info.node1_policy if chan_info.node1_pub == self.get_own_pubkey() else chan_info.node2_policy
-        if not dry_run:
-        # Regular run
-            return self.stub.UpdateChannelPolicy(ln.PolicyUpdateRequest(
-                chan_point=channel_point,
-                base_fee_msat=(base_fee_msat if base_fee_msat is not None else my_policy.fee_base_msat),
-                fee_rate=fee_ppm/1000000 if fee_ppm is not None else my_policy.fee_rate_milli_msat/1000000,
-                time_lock_delta=my_policy.time_lock_delta
-            ))
+        return self.stub.UpdateChannelPolicy(ln.PolicyUpdateRequest(
+            chan_point=channel_point,
+            base_fee_msat=(base_fee_msat if base_fee_msat is not None else my_policy.fee_base_msat),
+            fee_rate=fee_ppm/1000000 if fee_ppm is not None else my_policy.fee_rate_milli_msat/1000000,
+            time_lock_delta=my_policy.time_lock_delta
+        ))
 
     def get_txns(self, start_height = None, end_height = None):
         return self.stub.GetTransactions(ln.GetTransactionsRequest(

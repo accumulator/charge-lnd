@@ -38,17 +38,48 @@ def main():
 
     channels = lnd.get_channels()
     for channel in channels:
-        policy = matcher.get_policy(channel)
-        print (fmt.col_lo(fmt.print_chanid(channel.chan_id).ljust(14)) + fmt.print_node(lnd.get_node_info(channel.remote_pubkey)) + ' ➜ ' + fmt.col_hi(policy.name))
-        (base_fee_msat, fee_ppm) = policy.execute(channel)
+        new_policy = matcher.get_policy(channel)
+
+        (new_base_fee_msat, new_fee_ppm) = new_policy.execute(channel)
         if arguments.verbose:
-            print("  strategy:      %s" % fmt.col_hi(policy.config.get('strategy')) )
-            if base_fee_msat is not None:
-                print("  base_fee_msat: %s" % fmt.col_hi(base_fee_msat) )
-            if fee_ppm is not  None:
-                print("  fee_ppm:       %s" % fmt.col_hi(fee_ppm) )
-        if fee_ppm is not None or base_fee_msat is not None:
-            lnd.update_chan_policy(channel.chan_id, base_fee_msat, fee_ppm, arguments.dry_run)
+            print("  strategy:      %s" % fmt.col_hi(new_policy.config.get('strategy')) )
+            if new_base_fee_msat is not None:
+                print("  new_base_fee_msat: %s" % fmt.col_hi(new_base_fee_msat) )
+            if new_fee_ppm is not  None:
+                print("  new_fee_ppm:       %s" % fmt.col_hi(new_fee_ppm) )
+
+        # Get current strategy
+        current_policy = matcher.current_policy(channel, lnd.feereport)
+        if current_policy:
+            current_policy_name, current_fee_ppm, current_base_fee_msat = matcher.current_policy(channel, lnd.feereport)
+        else:
+            current_policy_name, current_fee_ppm, current_base_fee_msat = ("No policy",None,None)
+
+        # Determine if we need to change
+        if current_fee_ppm == new_fee_ppm and current_base_fee_msat == new_base_fee_msat:
+            # No change, all variables are the same
+            if arguments.verbose:
+                print (
+                    fmt.col_lo(fmt.print_chanid(channel.chan_id).ljust(14)) +
+                    fmt.print_node(lnd.get_node_info(channel.remote_pubkey)) +
+                    ' = ' +
+                    fmt.col_hi(new_policy.name)
+                    )
+        else:
+            # There is a change
+            print ( 
+                    fmt.col_lo(fmt.print_chanid(channel.chan_id).ljust(14)) + 
+                    fmt.print_node(lnd.get_node_info(channel.remote_pubkey)) + 
+                    ' ' + 
+                    fmt.col_hi(current_policy_name) +
+                    ' ➜ ' + 
+                    fmt.col_hi(new_policy.name)
+                    )
+            if not arguments.dry_run:
+                lnd.update_chan_policy(channel.chan_id, new_base_fee_msat, new_fee_ppm)
+
+
+
 
     return True
 

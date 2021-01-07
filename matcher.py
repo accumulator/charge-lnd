@@ -55,6 +55,24 @@ class Matcher:
 
         return Policy(self.lnd, 'default', self.default);
 
+    def current_policy(self, channel, feereport):
+        # Finds existing policy
+        current_fees=feereport[channel.chan_id]
+        current_fee_ppm = current_fees['fee_ppm']
+        current_base_fee_msat = current_fees['base_fee_msat']
+        # Is it default?
+        if int(  current_fee_ppm)        == int(  self.default.get("fee_ppm")) and \
+            float(current_base_fee_msat) == float(self.default.get("base_fee_msat")):
+            return ('default',current_fee_ppm,current_base_fee_msat)
+
+        # Is it any of the set policies?
+        for policy in self.policies:
+            if int(  current_fee_ppm)       == int(  self.config[policy].get("fee_ppm")) and \
+                float(current_base_fee_msat) == float(self.config[policy].get("base_fee_msat")):
+                return (policy,current_fee_ppm,current_base_fee_msat)
+
+        return None
+
     def eval_matchers(self, channel, policy_conf):
         map = {
             'chan'  : self.match_by_chan,
