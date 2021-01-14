@@ -1,6 +1,6 @@
 googleapis-common-protos==1.52.0
-grpcio==1.30.0
-protobuf==3.12.2
+grpcio==1.33.2
+protobuf==3.13.0
 six==1.15.0
 termcolor==1.1.0
 colorama==0.4.3
