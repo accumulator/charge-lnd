@@ -39,7 +39,7 @@ class Policy:
     def strategy_proportional(self, channel):
         ppm_min = self.config.getint('fee_ppm_min')
         ppm_max = self.config.getint('fee_ppm_max')
-        balance = channel.local_balance / (channel.local_balance + channel.remote_balance)
+        balance = channel.remote_balance / (channel.local_balance + channel.remote_balance)
         ppm = int(ppm_min + balance * (ppm_max - ppm_min))
         return (self.config.getint('base_fee_msat'), ppm)
 
