@@ -111,6 +111,22 @@ base_fee_msat = 1
 fee_ppm = 2
 ```
 
+Use proportional strategy to adjust fee rate according to channel balancedness:
+```
+[proportional]
+# 'proportional' (lower fee rate with low remote balance & higher rate with higher balance)
+# formula: fee_ppm = fee_ppm_min + remote_balance / (remote_balance + local_balance) * (fee_ppm_max - fee_ppm_min)
+chan.min_ratio = 0.2
+chan.max_ratio = 0.9
+chan.min_capacity = 1000000
+#node.min_sats = 50000000
+strategy = proportional
+base_fee_msat = 1000
+fee_ppm_min = 10
+fee_ppm_max = 200
+```
+
+
 More elaborate examples can be found in the [charge.config.example](charge.config.example) file.
 
 ### Properties
@@ -140,6 +156,7 @@ Currently available properties:
 - **cost** (calculate cost for opening channel, and set ppm to cover cost when channel depletes. properties: **cost_factor**)
 - **onchain_fee** (sets the fees to a % equivalent of a standard onchain payment of **onchain_fee_btc** BTC within **onchain_fee_numblocks** blocks.
   Requires --electrum-server to be specified. **base_fee_msat** is used if defined.)
+- **proportional** (sets fee ppm according to balancedness. properties: fee_ppm_min, fee_ppm_max)
 
 ## Contributing
 

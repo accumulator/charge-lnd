@@ -43,6 +43,8 @@ base_fee_msat = 0
 fee_ppm = 1
 
 [proportional]
+# 'proportional' (lower fee rate with low remote balance & higher rate with higher balance)
+# formula: fee_ppm = fee_ppm_min + remote_balance / (remote_balance + local_balance) * (fee_ppm_max - fee_ppm_min)
 chan.min_ratio = 0.2
 chan.max_ratio = 0.9
 chan.min_capacity = 1000000
