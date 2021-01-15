@@ -140,6 +140,7 @@ Currently available properties:
 - **cost** (calculate cost for opening channel, and set ppm to cover cost when channel depletes. properties: **cost_factor**)
 - **onchain_fee** (sets the fees to a % equivalent of a standard onchain payment of **onchain_fee_btc** BTC within **onchain_fee_numblocks** blocks.
   Requires --electrum-server to be specified. **base_fee_msat** is used if defined.)
+- **proportional** (sets fee ppm according to balancedness. properties: fee_ppm_min, fee_ppm_max)
 
 ## Contributing
 

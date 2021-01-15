@@ -36,7 +36,7 @@ strategy = static
 base_fee_msat = 0
 fee_ppm = 1
 
-[autobalance]
+[encourage-routing]
 # 'autobalance' (lower fees so using outbound is more attractive) larger channels (min_capacity 2M sats)
 # to larger nodes (node has at least 5M sats) if balance ratio >= 0.9 (more than 90% on our side)
 chan.min_ratio = 0.9
@@ -47,9 +47,33 @@ strategy = static
 base_fee_msat = 500
 fee_ppm = 5
 
+[discourage-routing]
+# 'autobalance' (higher fees so using outbound is less attractive) larger channels (min_capacity 2M sats)
+# to larger nodes (node has at least 5M sats) if balance ratio <= 0.2 (less than 20% on our side)
+chan.max_ratio = 0.2
+chan.min_capacity = 2000000
+node.min_sats = 50000000
+
+strategy = static
+base_fee_msat = 10000
+fee_ppm = 500
+
+[proportional]
+# 'proportional' can also be used to auto balance (lower fee rate when low remote balance & higher rate when higher remote balance)
+# fee_ppm decreases linearly with the channel balance ratio (fee_ppm_min when ratio is 1, fee_ppm_max when ratio is 0)
+chan.min_ratio = 0.2
+chan.max_ratio = 0.9
+chan.min_capacity = 1000000
+
+strategy = proportional
+base_fee_msat = 1000
+fee_ppm_min = 10
+fee_ppm_max = 200
+
 [pool-policy]
 # use a list of channels exported from Lightning Pool to set a policy for channels that we initiated by selling liquidity using Lightning Pool
 chan.id = file://./pool-channels.txt
+
 strategy = static
 base_fee_msat = 500
 fee_ppm = 1
@@ -58,6 +82,7 @@ fee_ppm = 1
 # use cost strategy if we are the initiator, using a base fee of 1 sat, and a cost_factor of 1.5 to recover 150% of costs when
 # channel is depleted to 100% outgoing
 initiator = true
+
 strategy = cost
 base_fee_msat = 1000
 cost_factor = 1.5
