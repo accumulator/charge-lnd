@@ -51,13 +51,11 @@ class Lnd:
 
     def get_feereport(self):
         feereport = self.stub.FeeReport(ln.FeeReportRequest())
-        feedict={}
+        feedict = {}
         for channel_fee in feereport.channel_fees:
-            feedict[channel_fee.chan_id]={
-                    'base_fee_msat' : channel_fee.base_fee_msat,
-                    'fee_ppm' : channel_fee.fee_per_mil,
-                    }
+            feedict[channel_fee.chan_id] = (channel_fee.base_fee_msat, channel_fee.fee_per_mil)
         return feedict
+
     def get_node_info(self, nodepubkey):
         if not nodepubkey in self.node_info:
             self.node_info[nodepubkey] = self.stub.GetNodeInfo(ln.NodeInfoRequest(pub_key=nodepubkey))

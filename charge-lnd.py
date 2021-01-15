@@ -38,48 +38,39 @@ def main():
 
     channels = lnd.get_channels()
     for channel in channels:
-        new_policy = matcher.get_policy(channel)
+        policy = matcher.get_policy(channel)
 
-        (new_base_fee_msat, new_fee_ppm) = new_policy.execute(channel)
-        if arguments.verbose:
-            print("  strategy:      %s" % fmt.col_hi(new_policy.config.get('strategy')) )
+        (new_base_fee_msat, new_fee_ppm) = policy.execute(channel)
+
+        if channel.chan_id in lnd.feereport:
+            (current_base_fee_msat, current_fee_ppm) = lnd.feereport[channel.chan_id]
+
+        fee_ppm_changed = new_fee_ppm and current_fee_ppm != new_fee_ppm
+        base_fee_changed = new_base_fee_msat and current_base_fee_msat != new_base_fee_msat
+        is_changed = fee_ppm_changed or base_fee_changed
+
+        if is_changed or arguments.verbose:
+            print (
+                fmt.col_lo(fmt.print_chanid(channel.chan_id).ljust(14)) +
+                fmt.print_node(lnd.get_node_info(channel.remote_pubkey))
+                )
+
+        if is_changed and not arguments.dry_run:
+            lnd.update_chan_policy(channel.chan_id, new_base_fee_msat, new_fee_ppm)
+
+        if is_changed or arguments.verbose:
+            print("  policy:        %s" % fmt.col_hi(policy.name) )
+            print("  strategy:      %s" % fmt.col_hi(policy.config.get('strategy')) )
             if new_base_fee_msat is not None:
-                print("  new_base_fee_msat: %s" % fmt.col_hi(new_base_fee_msat) )
-            if new_fee_ppm is not  None:
-                print("  new_fee_ppm:       %s" % fmt.col_hi(new_fee_ppm) )
-
-        # Get current strategy
-        current_policy = matcher.current_policy(channel, lnd.feereport)
-        if current_policy:
-            current_policy_name, current_fee_ppm, current_base_fee_msat = matcher.current_policy(channel, lnd.feereport)
-        else:
-            current_policy_name, current_fee_ppm, current_base_fee_msat = ("No policy",None,None)
-
-        # Determine if we need to change
-        if current_fee_ppm == new_fee_ppm and current_base_fee_msat == new_base_fee_msat:
-            # No change, all variables are the same
-            if arguments.verbose:
-                print (
-                    fmt.col_lo(fmt.print_chanid(channel.chan_id).ljust(14)) +
-                    fmt.print_node(lnd.get_node_info(channel.remote_pubkey)) +
-                    ' = ' +
-                    fmt.col_hi(new_policy.name)
-                    )
-        else:
-            # There is a change
-            print ( 
-                    fmt.col_lo(fmt.print_chanid(channel.chan_id).ljust(14)) + 
-                    fmt.print_node(lnd.get_node_info(channel.remote_pubkey)) + 
-                    ' ' + 
-                    fmt.col_hi(current_policy_name) +
-                    ' ➜ ' + 
-                    fmt.col_hi(new_policy.name)
-                    )
-            if not arguments.dry_run:
-                lnd.update_chan_policy(channel.chan_id, new_base_fee_msat, new_fee_ppm)
-
-
-
+                s = ''
+                if base_fee_changed:
+                    s = ' ➜ ' + fmt.col_hi(new_base_fee_msat)
+                print("  base_fee_msat: %s%s" % (fmt.col_hi(current_base_fee_msat), s) )
+            if new_fee_ppm is not None:
+                s = ''
+                if fee_ppm_changed:
+                    s = ' ➜ ' + fmt.col_hi(new_fee_ppm)
+                print("  fee_ppm:       %s%s" % (fmt.col_hi(current_fee_ppm), s) )
 
     return True
 
