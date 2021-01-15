@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import sys
-import fmt
-from electrum import Electrum
+from . import fmt
+from .electrum import Electrum
 
 def debug(message):
     sys.stderr.write(message + "\n")

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import sys
-from policy import Policy
-import fmt
 import re
+from .policy import Policy
+from . import fmt
 
 def debug(message):
     sys.stderr.write(message + "\n")

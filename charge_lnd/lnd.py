@@ -5,7 +5,7 @@ import codecs
 import grpc
 import sys
 
-from grpc_generated import rpc_pb2_grpc as lnrpc, rpc_pb2 as ln
+from .grpc_generated import rpc_pb2_grpc as lnrpc, rpc_pb2 as ln
 
 MESSAGE_SIZE_MB = 50 * 1024 * 1024
 

@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-from grpc_generated import rpc_pb2 as rpc__pb2
+from . import rpc_pb2 as rpc__pb2
 
 
 class LightningStub(object):

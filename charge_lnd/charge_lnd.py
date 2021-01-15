@@ -8,10 +8,10 @@ import os
 import colorama
 colorama.init()
 
-from lnd import Lnd
-from matcher import Matcher
-from electrum import Electrum
-import fmt
+from .lnd import Lnd
+from .matcher import Matcher
+from .electrum import Electrum
+import charge_lnd.fmt as fmt
 
 MAX_CHANNEL_CAPACITY = 16777215
 
