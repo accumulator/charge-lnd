@@ -130,8 +130,8 @@ Currently available properties:
 - **node.id** (match on node pubkeys (comma separated list, or 1-node-per line in a file reference e.g. `file://./friends.list`
 - **node.min_channels** (match on node # of channels)
 - **node.max_channels** (match on node # of channels)
-- **node.min_sats** (match on node total capacity)
-- **node.max_sats** (match on node total capacity)
+- **node.min_capacity** (match on node total capacity)
+- **node.max_capacity** (match on node total capacity)
 
 ### Strategies
 - **ignore** (ignores the channel)

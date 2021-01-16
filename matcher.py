@@ -75,7 +75,7 @@ class Matcher:
         return matches_policy
 
     def match_by_node(self, channel, config):
-        accepted = ['id','min_channels','max_channels','min_sats','max_sats']
+        accepted = ['id','min_channels','max_channels','min_capacity','max_capacity']
         for key in config.keys():
             if key.split(".")[0] == 'node' and key.split(".")[1] not in accepted:
                 debug("Unknown property '%s'" % key)
@@ -100,9 +100,9 @@ class Matcher:
             return False
         if 'node.max_channels' in config and not config.getint('node.max_channels') >= node_info.num_channels:
             return False
-        if 'node.min_sats' in config and not config.getint('node.min_sats') <= node_info.total_capacity:
+        if 'node.min_capacity' in config and not config.getint('node.min_capacity') <= node_info.total_capacity:
             return False
-        if 'node.max_sats' in config and not config.getint('node.max_sats') >= node_info.total_capacity:
+        if 'node.max_capacity' in config and not config.getint('node.max_capacity') >= node_info.total_capacity:
             return False
 
         return True

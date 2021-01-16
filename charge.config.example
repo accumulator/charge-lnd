@@ -27,8 +27,8 @@ fee_ppm = 100
 
 [beginner-node]
 # set lower fees on channels with smaller peers, that have few channels (4-8 channels) total
-# and limited node size (max_sats=1000000)
-node.max_sats = 1000000
+# and limited node size (max_capacity=1000000)
+node.max_capacity = 1000000
 node.min_channels = 4
 node.max_channels = 8
 
@@ -41,7 +41,7 @@ fee_ppm = 1
 # to larger nodes (node has at least 5M sats) if balance ratio >= 0.9 (more than 90% on our side)
 chan.min_ratio = 0.9
 chan.min_capacity = 2000000
-node.min_sats = 50000000
+node.min_capacity = 50000000
 
 strategy = static
 base_fee_msat = 500
@@ -52,7 +52,7 @@ fee_ppm = 5
 # to larger nodes (node has at least 5M sats) if balance ratio <= 0.2 (less than 20% on our side)
 chan.max_ratio = 0.2
 chan.min_capacity = 2000000
-node.min_sats = 50000000
+node.min_capacity = 50000000
 
 strategy = static
 base_fee_msat = 10000
