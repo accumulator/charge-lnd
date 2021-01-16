@@ -142,6 +142,11 @@ Currently available properties:
   Requires --electrum-server to be specified. **base_fee_msat** is used if defined.)
 - **proportional** (sets fee ppm according to balancedness. properties: fee_ppm_min, fee_ppm_max)
 
+All strategies (except the ignore strategy) will apply the following properties if defined:
+- **min_htlc_msat**
+- **max_htlc_msat**
+- **time_lock_delta**
+
 ## Contributing
 
 Contributions are highly welcome!
