@@ -79,9 +79,6 @@ class Lnd:
             output_index=int(chan_info.chan_point.split(':')[1])
         )
         my_policy = chan_info.node1_policy if chan_info.node1_pub == self.get_own_pubkey() else chan_info.node2_policy
-        print((min_htlc_msat if min_htlc_msat is not None else my_policy.min_htlc))
-        print((max_htlc_msat if max_htlc_msat is not None else my_policy.max_htlc_msat))
-        print((time_lock_delta if time_lock_delta is not None else my_policy.time_lock_delta))
         return self.stub.UpdateChannelPolicy(ln.PolicyUpdateRequest(
             chan_point=channel_point,
             base_fee_msat=(base_fee_msat if base_fee_msat is not None else my_policy.fee_base_msat),
