@@ -1,10 +1,10 @@
 # charge-lnd
 
-This script matches your open channels against a number of customizable criteria and applies a channel policy based on the matching section.
+This script matches your open Lightning channels against a number of customizable criteria and applies channel fees based on the matching policy.
 
 ## Installation
 
-This script needs a moderately recent lnd (https://github.com/lightningnetwork/lnd) instance running.
+This script needs a moderately recent LND (https://github.com/lightningnetwork/lnd) instance running.
 
 You don't need to have full admin rights to use charge-lnd. The following access rights are used:
 - `offchain:read`
@@ -18,11 +18,11 @@ You can create a suitably limited macaroon by issueing:
 $ lncli bakemacaroon offchain:read offchain:write onchain:read info:read --save_to=~/.lnd/data/chain/bitcoin/mainnet/charge-lnd.macaroon
 ```
 
-By default this script connects to `localhost:10009`, using the macaroon file in `~/.lnd/data/chain/bitcoin/mainnet/charge-lnd.macaroon`. If `charge-lnd.macaroon` is not found, `admin.macaroon` will be tried.
+By default charge-lnd connects to `localhost:10009`, using the macaroon file in `~/.lnd/data/chain/bitcoin/mainnet/charge-lnd.macaroon`. If `charge-lnd.macaroon` is not found, `admin.macaroon` will be tried.
 
 If you need to change this, please have a look at the optional arguments `--grpc` and `--lnddir`.
 
-You need to install Python. The gRPC dependencies can be installed by running:
+You need to install Python. The dependencies can be installed by running:
 
 ```
 $ pip install -r requirements.txt
@@ -53,17 +53,17 @@ optional arguments:
                         (default: charge.config) path to config file
 ```
 
-All policies are defined using an INI style config file (defaults to `charge.config` in the current directory)
+All policies are defined using an INI style config file (filename defaults to `charge.config` in the current directory)
 
-Each `[section]` defined in the config file describes a policy.
+Each `[policy-name]` defined in the config file describes a policy.
 A single policy consists of;
-- a set of properties to match against the channel/node
-- a fee strategy
+- a set of criteria to match against the channel and/or node (e.g. minimum channel capacity)
+- a fee strategy (how to calculate the new channel fees)
 
-The defined properties are compared against the channels and associated nodes.
-The fee strategy then defines how to set the channel fees.
+The defined criteria are compared against the open channels and associated nodes.
+The fee strategy then executed to determine what the new channel fees should be.
 
-There is a special `[default]` section, that will be used if none of the policies matches a channel. The `[default]` section only contains a strategy, not any matching properties.
+There is a special `[default]` section, that will be used if none of the policies match a channel. The `[default]` section only contains a strategy, not any matching criteria.
 
 All policies are evaluated top to bottom. The first matching policy is applied (except for the default policy).
 
@@ -77,9 +77,7 @@ base_fee_msat = 1000
 fee_ppm = 10
 ```
 
-Explanation:
-
-This policy matches the channels against the `chan.min_capacity` property. Only channels with at least 500000 sats total capacity will match.
+This policy matches the channels against the `chan.min_capacity` criterium. Only channels with at least 500000 sats total capacity will match.
 
 If a channel matches this policy, the `static` strategy is then used, which takes the `base_fee_msat` and `fee_ppm`  properties defined in the policy and applies them to the channel.
 
@@ -116,31 +114,39 @@ More elaborate examples can be found in the [charge.config.example](charge.confi
 ### Properties
 
 Currently available properties:
-- **chan.id** (match on channel IDs (comma separated list, or 1-chan-per line in a file reference e.g. `file://./chans.list`))
-- **chan.initiator** (match on initiator status, true if we are initiator)
-- **chan.max_ratio** (match on channel ratio)
-- **chan.min_ratio** (match on channel ratio)
-- **chan.min_capacity** (match on channel capacity)
-- **chan.max_capacity** (match on channel capacity)
-- **chan.min_base_fee_msat** (match on channel peer policy)
-- **chan.max_base_fee_msat** (match on channel peer policy)
-- **chan.min_fee_ppm** (match on channel peer policy)
-- **chan.max_fee_ppm** (match on channel peer policy)
-- **chan.private** (match on channel private flag)
-- **node.id** (match on node pubkeys (comma separated list, or 1-node-per line in a file reference e.g. `file://./friends.list`
-- **node.min_channels** (match on node # of channels)
-- **node.max_channels** (match on node # of channels)
-- **node.min_capacity** (match on node total capacity)
-- **node.max_capacity** (match on node total capacity)
 
+|Property|Description|Values|
+|:--|:--|:--|
+| **chan.id** |match on channel IDs - comma separated list of channel IDs and/or file references|<channel ID\|file url>[, <channel ID\|file url>..]<br><br>Example:<br>`chan.id = 606604x1705x0, 643028:1797:1, 697111262856151041, file://./special-chans.txt`|
+| **chan.initiator** | match on initiator status, true if we are initiator|true\|false|
+| **chan.private** | match on channel private flag|true\|false|
+| **chan.max_ratio** | match on channel ratio|0..1|
+| **chan.min_ratio** | match on channel ratio|0..1|
+|**chan.min_capacity** | match on channel capacity|# of sats|
+| **chan.max_capacity** | match on channel capacity|# of sats|
+| **chan.min_base_fee_msat** | match on channel peer policy|# of msats|
+| **chan.max_base_fee_msat** | match on channel peer policy|# of msats|
+| **chan.min_fee_ppm** | match on channel peer policy|0..1000000 (parts per million)|
+| **chan.max_fee_ppm** | match on channel peer policy|0..1000000 (parts per million)|
+|||
+| **node.id** | match on node pubkeys - comma separated list of node pubkeys and/or file references|<node pubkey\|file url>[, <node pubkey\|file url>..]<br><br>Example:<br>`node.id = 02da8d5a759ee9e4438da617cfdb61c87f723fb76c4b6371b877d0347abe953a4f,file://./friends.list`|
+| **node.min_channels** | match on number of channels the peer node has|# of channels|
+| **node.max_channels** | match on number of channels the peer node has|# of channels|
+| **node.min_capacity** | match on node total capacity|# of sats|
+| **node.max_capacity** | match on node total capacity|# of sats|
+
+File references should contain 1 item per line
 ### Strategies
-- **ignore** (ignores the channel)
-- **static** (sets fixed base fee and fee rate values. properties: **base_fee_msat**, **fee_ppm**)
-- **match_peer** (sets the same base fee and fee rate values as the peer)
-- **cost** (calculate cost for opening channel, and set ppm to cover cost when channel depletes. properties: **cost_factor**)
-- **onchain_fee** (sets the fees to a % equivalent of a standard onchain payment of **onchain_fee_btc** BTC within **onchain_fee_numblocks** blocks.
-  Requires --electrum-server to be specified. **base_fee_msat** is used if defined.)
-- **proportional** (sets fee ppm according to balancedness. properties: fee_ppm_min, fee_ppm_max)
+Available strategies:
+
+|Strategy|Description|Parameters|
+|:--|:--|:--|
+|**ignore** | ignores the channel||
+|**static** | sets fixed base fee and fee rate values.| **base_fee_msat**<br>**fee_ppm**|
+|**match_peer** | sets the same base fee and fee rate values as the peer||
+|**cost** | calculate cost for opening channel, and set ppm to cover cost when channel depletes.|**cost_factor**|
+|**onchain_fee** | sets the fees to a % equivalent of a standard onchain payment (Requires --electrum-server to be specified.)| **onchain_fee_btc** BTC<br>within **onchain_fee_numblocks** blocks.<br>**base_fee_msat** is used if defined.|
+|**proportional** | sets fee ppm according to balancedness.|**fee_ppm_min**<br>**fee_ppm_max**|
 
 All strategies (except the ignore strategy) will apply the following properties if defined:
 - **min_htlc_msat**
