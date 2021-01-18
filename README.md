@@ -117,7 +117,7 @@ Currently available properties:
 
 |Property|Description|Values|
 |:--|:--|:--|
-| **chan.id** |match on channel IDs - comma separated list of channel IDs and/or file references|<channel ID\|file url>[, <channel ID\|file url>..]<br><br>Example:<br>`chan.id = 606604x1705x0, 643028:1797:1, 697111262856151041, file://./special-chans.txt`|
+| **chan.id** |match on channel IDs - comma separated list of channel IDs and/or file references|<channel ID\|file url>[, <channel ID\|file url>..]|
 | **chan.initiator** | match on initiator status, true if we are initiator|true\|false|
 | **chan.private** | match on channel private flag|true\|false|
 | **chan.max_ratio** | match on channel ratio|0..1|
@@ -129,7 +129,7 @@ Currently available properties:
 | **chan.min_fee_ppm** | match on channel peer policy|0..1000000 (parts per million)|
 | **chan.max_fee_ppm** | match on channel peer policy|0..1000000 (parts per million)|
 |||
-| **node.id** | match on node pubkeys - comma separated list of node pubkeys and/or file references|<node pubkey\|file url>[, <node pubkey\|file url>..]<br><br>Example:<br>`node.id = 02da8d5a759ee9e4438da617cfdb61c87f723fb76c4b6371b877d0347abe953a4f,file://./friends.list`|
+| **node.id** | match on node pubkeys - comma separated list of node pubkeys and/or file references|<node pubkey\|file url>[, <node pubkey\|file url>..]|
 | **node.min_channels** | match on number of channels the peer node has|# of channels|
 | **node.max_channels** | match on number of channels the peer node has|# of channels|
 | **node.min_capacity** | match on node total capacity|# of sats|
