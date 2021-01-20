@@ -24,9 +24,13 @@ class Policy:
         strategy = self.config.get('strategy', 'ignore')
         if strategy not in map:
             debug("Unknown strategy '%s'" % strategy)
-            sys.exit(1)
+            strategy = 'ignore'
 
-        return map[strategy](channel)
+        try:
+            return map[strategy](channel)
+        except Exception as e:
+            debug("Error executing strategy '%s'. (Error=%s)" % (strategy, str(e)) )
+            return self.strategy_ignore(channel)
 
     def strategy_ignore(self, channel):
         return (None, None, None, None, None)
@@ -82,8 +86,8 @@ class Policy:
 
     def strategy_onchain_fee(self, channel):
         if not Electrum.host or not Electrum.port:
-            debug("No electrum server specified, cannot use strategy 'onchain_fee'")
-            sys.exit(1)
+            raise Exception("No electrum server specified, cannot use strategy 'onchain_fee'")
+
         numblocks = self.config.getint('onchain_fee_numblocks', 6)
         sat_per_byte = Electrum.get_fee_estimate(numblocks)
         if sat_per_byte < 1:

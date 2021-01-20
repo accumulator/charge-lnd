@@ -41,6 +41,8 @@ def main():
     channels = lnd.get_channels()
     for channel in channels:
         policy = matcher.get_policy(channel)
+        if not policy:
+            continue
 
         (new_base_fee_msat, new_fee_ppm, new_min_htlc, new_max_htlc, new_time_lock_delta) = policy.execute(channel)
 

@@ -48,14 +48,18 @@ class Matcher:
 
     def get_policy(self, channel):
         # iterate policies, find first match based on matchers. If no match, use default
-        for policy in self.policies:
-            policy_conf = self.config[policy]
-            if self.eval_matchers(channel, policy_conf):
-                return Policy(self.lnd, policy, policy_conf)
+        try:
+            for policy in self.policies:
+                policy_conf = self.config[policy]
+                if self.eval_matchers(channel, policy, policy_conf):
+                    return Policy(self.lnd, policy, policy_conf)
+        except Exception as e:
+            debug("Error evaluating criteria for channel %s in policy '%s', ignoring channel. (Error=%s)" % (fmt.print_chanid(channel.chan_id), policy, str(e)))
+            return None
 
         return Policy(self.lnd, 'default', self.default);
 
-    def eval_matchers(self, channel, policy_conf):
+    def eval_matchers(self, channel, policy, policy_conf):
         map = {
             'chan'  : self.match_by_chan,
             'node'  : self.match_by_node
@@ -69,8 +73,8 @@ class Matcher:
         matches_policy = True
         for ns in namespaces:
             if not ns in map:
-                debug("Unknown namespace '%s'" % ns)
-                sys.exit(1)
+                debug("Unknown namespace '%s' in policy '%s'" % (ns,policy))
+                return False
             matches_policy = matches_policy and map[ns](channel, policy_conf)
         return matches_policy
 
@@ -78,8 +82,7 @@ class Matcher:
         accepted = ['id','min_channels','max_channels','min_capacity','max_capacity']
         for key in config.keys():
             if key.split(".")[0] == 'node' and key.split(".")[1] not in accepted:
-                debug("Unknown property '%s'" % key)
-                sys.exit(1)
+                raise Exception("Unknown property '%s'" % key)
 
         if 'node.id' in config:
             # expand file:// entries
@@ -111,8 +114,7 @@ class Matcher:
         accepted = ['id','initiator','private','max_ratio','min_ratio','max_capacity','min_capacity','min_base_fee_msat','max_base_fee_msat','min_fee_ppm','max_fee_ppm']
         for key in config.keys():
             if key.split(".")[0] == 'chan' and key.split(".")[1] not in accepted:
-                debug("Unknown property '%s'" % key)
-                sys.exit(1)
+                raise Exception("Unknown property '%s'" % key)
 
         if 'chan.id' in config:
             # expand file:// entries
