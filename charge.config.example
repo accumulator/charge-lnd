@@ -95,3 +95,11 @@ cost_factor = 1.5
 #base_fee_msat = 1000
 #onchain_fee_btc = 0.1
 #onchain_fee_numblocks = 6
+
+[micropayments-only]
+# set max_htlc_msat to 1000 sat (1M msat)
+chan.id = 636374x680x1
+strategy = static
+base_fee_msat = 1000
+fee_ppm = 10
+max_htlc_msat = 1000000
