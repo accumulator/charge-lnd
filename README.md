@@ -22,25 +22,28 @@ By default charge-lnd connects to `localhost:10009`, using the macaroon file in 
 
 If you need to change this, please have a look at the optional arguments `--grpc` and `--lnddir`.
 
-You need to install Python. The dependencies can be installed by running:
+Python and PIP should be made available on the system before installation.
+The project and its dependencies can be installed by running:
 
 ```
-$ pip install -r requirements.txt
+$ pip install -r requirements.txt .
 ```
 
 On some systems using Python 3, use pip3 instead:
 
 ```
-$ pip3 install -r requirements.txt
+$ pip3 install -r requirements.txt .
 ```
+
+When running the install as `root`, `charge-lnd` will be installed to `/usr/local/bin`. Otherwise `charge-lnd` will be installed to `$HOME/.local/bin`.
 
 ## Usage
 
 charge-lnd takes only a minimal set of parameters:
 
 ```
-usage: charge-lnd.py [-h] [--lnddir LNDDIR] [--grpc GRPC]
-                     [--electrum-server ELECTRUM_SERVER] [-c CONFIG]
+usage: charge-lnd [-h] [--lnddir LNDDIR] [--grpc GRPC]
+                  [--electrum-server ELECTRUM_SERVER] [-c CONFIG]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -49,8 +52,9 @@ optional arguments:
   --electrum-server ELECTRUM_SERVER
                         (no default) electrum server host:port
   --dry-run             Do not perform actions (for testing), print what we would do to stdout
+  -v, --verbose         Be more verbose
   -c CONFIG, --config CONFIG
-                        (default: charge.config) path to config file
+                        path to config file
 ```
 
 All policies are defined using an INI style config file (filename defaults to `charge.config` in the current directory)

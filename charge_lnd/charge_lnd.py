@@ -122,8 +122,8 @@ def get_argument_parser():
                         action="store_true",
                         help="Be more verbose")
     parser.add_argument("-c", "--config",
-                        default="charge.config",
-                        help="(default: charge.config) path to config file")
+                        required=True,
+                        help="path to config file")
     return parser
 
 
