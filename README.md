@@ -57,7 +57,7 @@ optional arguments:
                         path to config file
 ```
 
-All policies are defined using an INI style config file (filename defaults to `charge.config` in the current directory)
+All policies are defined using an INI style config file.
 
 Each `[policy-name]` defined in the config file describes a policy.
 A single policy consists of;
