@@ -90,7 +90,7 @@ If a channel matches this policy, the `static` strategy is then used, which take
 Maintain a friends list with lower fees:
 ```
 [friends]
-node.id = file://./friends.list
+node.id = file:///home/lnd/friends.list
 strategy = static
 base_fee_msat = 10
 fee_ppm = 10

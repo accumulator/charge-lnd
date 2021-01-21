@@ -72,7 +72,7 @@ fee_ppm_max = 200
 
 [pool-policy]
 # use a list of channels exported from Lightning Pool to set a policy for channels that we initiated by selling liquidity using Lightning Pool
-chan.id = file://./pool-channels.txt
+chan.id = file:///home/lnd/pool-channels.txt
 
 strategy = static
 base_fee_msat = 500
