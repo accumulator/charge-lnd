@@ -43,10 +43,12 @@ class Policy:
                 self.config.getint('time_lock_delta'))
 
     def strategy_proportional(self, channel):
-        ppm_min = self.config.getint('fee_ppm_min')
-        ppm_max = self.config.getint('fee_ppm_max')
-        balance = channel.remote_balance / (channel.local_balance + channel.remote_balance)
-        ppm = int(ppm_min + balance * (ppm_max - ppm_min))
+        ppm_min = self.config.getint('min_fee_ppm')
+        ppm_max = self.config.getint('max_fee_ppm')
+        if ppm_min is None or ppm_max is None:
+            raise Exception('proportional strategy requires min_fee_ppm and max_fee_ppm properties')
+        ratio = channel.local_balance/(channel.local_balance + channel.remote_balance)
+        ppm = int(ppm_min + (1.0 - ratio) * (ppm_max - ppm_min))
         return (self.config.getint('base_fee_msat'),
                 ppm,
                 self.config.getint('min_htlc_msat'),

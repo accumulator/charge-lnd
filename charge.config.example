@@ -67,8 +67,8 @@ chan.min_capacity = 1000000
 
 strategy = proportional
 base_fee_msat = 1000
-fee_ppm_min = 10
-fee_ppm_max = 200
+min_fee_ppm = 10
+max_fee_ppm = 200
 
 [pool-policy]
 # use a list of channels exported from Lightning Pool to set a policy for channels that we initiated by selling liquidity using Lightning Pool
@@ -81,7 +81,7 @@ fee_ppm = 1
 [recover-cost]
 # use cost strategy if we are the initiator, using a base fee of 1 sat, and a cost_factor of 1.5 to recover 150% of costs when
 # channel is depleted to 100% outgoing
-initiator = true
+chan.initiator = true
 
 strategy = cost
 base_fee_msat = 1000
