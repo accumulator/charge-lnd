@@ -126,8 +126,10 @@ Currently available properties:
 | **chan.private** | match on channel private flag|true\|false|
 | **chan.max_ratio** | match on channel ratio|0..1|
 | **chan.min_ratio** | match on channel ratio|0..1|
-|**chan.min_capacity** | match on channel capacity|# of sats|
+| **chan.min_capacity** | match on channel capacity|# of sats|
 | **chan.max_capacity** | match on channel capacity|# of sats|
+| **chan.min_age** | match on channel age|# of blocks|
+| **chan.max_age** | match on channel age|# of blocks|
 | **chan.min_base_fee_msat** | match on channel peer policy|# of msats|
 | **chan.max_base_fee_msat** | match on channel peer policy|# of msats|
 | **chan.min_fee_ppm** | match on channel peer policy|0..1000000 (parts per million)|

@@ -79,7 +79,10 @@ class Matcher:
         return matches_policy
 
     def match_by_node(self, channel, config):
-        accepted = ['id','min_channels','max_channels','min_capacity','max_capacity']
+        accepted = ['id',
+                    'min_channels','max_channels',
+                    'min_capacity','max_capacity'
+                    ]
         for key in config.keys():
             if key.split(".")[0] == 'node' and key.split(".")[1] not in accepted:
                 raise Exception("Unknown property '%s'" % key)
@@ -111,7 +114,13 @@ class Matcher:
         return True
 
     def match_by_chan(self, channel, config):
-        accepted = ['id','initiator','private','max_ratio','min_ratio','max_capacity','min_capacity','min_base_fee_msat','max_base_fee_msat','min_fee_ppm','max_fee_ppm']
+        accepted = ['id','initiator','private',
+                    'min_ratio','max_ratio',
+                    'min_capacity','max_capacity',
+                    'min_base_fee_msat','max_base_fee_msat',
+                    'min_fee_ppm','max_fee_ppm',
+                    'min_age','max_age'
+                    ]
         for key in config.keys():
             if key.split(".")[0] == 'chan' and key.split(".")[1] not in accepted:
                 raise Exception("Unknown property '%s'" % key)
@@ -157,6 +166,16 @@ class Matcher:
         if 'chan.min_fee_ppm' in config and not config.getint('chan.min_fee_ppm') <= peernode_policy.fee_rate_milli_msat:
             return False
         if 'chan.max_fee_ppm' in config and not config.getint('chan.max_fee_ppm') >= peernode_policy.fee_rate_milli_msat:
+            return False
+
+        info = self.lnd.get_info()
+        if not info:
+            return False
+        (block,tx,output) = fmt.lnd_to_cl_scid(channel.chan_id)
+        age = info.block_height - block
+        if 'chan.min_age' in config and not config.getint('chan.min_age') >= age:
+            return False
+        if 'chan.max_age' in config and not config.getint('chan.max_age') <= age:
             return False
 
         return True
