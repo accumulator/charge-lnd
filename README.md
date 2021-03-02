@@ -26,13 +26,13 @@ Python and PIP should be made available on the system before installation.
 The project and its dependencies can be installed by running:
 
 ```
-$ pip install -r requirements.txt .
+$ pip install -U setuptools && pip install -r requirements.txt .
 ```
 
 On some systems using Python 3, use pip3 instead:
 
 ```
-$ pip3 install -r requirements.txt .
+$ pip3 install -U setuptools && pip3 install -r requirements.txt .
 ```
 
 When running the install as `root`, `charge-lnd` will be installed to `/usr/local/bin`. Otherwise `charge-lnd` will be installed to `$HOME/.local/bin`.
