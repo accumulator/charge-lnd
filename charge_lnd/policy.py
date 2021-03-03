@@ -49,6 +49,16 @@ class Policy:
             raise Exception('proportional strategy requires min_fee_ppm and max_fee_ppm properties')
         ratio = channel.local_balance/(channel.local_balance + channel.remote_balance)
         ppm = int(ppm_min + (1.0 - ratio) * (ppm_max - ppm_min))
+
+        chan_info = self.lnd.get_chan_info(channel.chan_id)
+        my_pubkey = self.lnd.get_own_pubkey()
+        localnode_policy = chan_info.node2_policy if chan_info.node2_pub == my_pubkey else chan_info.node1_policy
+        current_ppm = int(localnode_policy.fee_rate_milli_msat)
+        # if less than the minimum delta, don't change the value
+        ppm_min_delta = self.config.getint('min_fee_ppm_delta', 0)
+        if abs(ppm - current_ppm) < ppm_min_delta:
+            ppm = current_ppm 
+
         return (self.config.getint('base_fee_msat'),
                 ppm,
                 self.config.getint('min_htlc_msat'),

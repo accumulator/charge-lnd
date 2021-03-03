@@ -61,6 +61,7 @@ fee_ppm = 500
 [proportional]
 # 'proportional' can also be used to auto balance (lower fee rate when low remote balance & higher rate when higher remote balance)
 # fee_ppm decreases linearly with the channel balance ratio (fee_ppm_min when ratio is 1, fee_ppm_max when ratio is 0)
+# the optional min_fee_ppm_delta avoids updates that are will change less than the specified amount
 chan.min_ratio = 0.2
 chan.max_ratio = 0.9
 chan.min_capacity = 1000000
@@ -69,6 +70,7 @@ strategy = proportional
 base_fee_msat = 1000
 min_fee_ppm = 10
 max_fee_ppm = 200
+min_fee_ppm_delta = 10
 
 [pool-policy]
 # use a list of channels exported from Lightning Pool to set a policy for channels that we initiated by selling liquidity using Lightning Pool
