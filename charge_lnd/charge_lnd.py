@@ -54,11 +54,11 @@ def main():
             chan_info = lnd.get_chan_info(channel.chan_id)
             my_policy = chan_info.node1_policy if chan_info.node1_pub == my_pubkey else chan_info.node2_policy
 
-        fee_ppm_changed = new_fee_ppm and current_fee_ppm != new_fee_ppm
-        base_fee_changed = new_base_fee_msat and current_base_fee_msat != new_base_fee_msat
-        min_htlc_changed = new_min_htlc and my_policy.min_htlc != new_min_htlc
-        max_htlc_changed = new_max_htlc and my_policy.max_htlc_msat != new_max_htlc
-        time_lock_delta_changed = new_time_lock_delta and my_policy.time_lock_delta != new_time_lock_delta
+        fee_ppm_changed = new_fee_ppm is not None and current_fee_ppm != new_fee_ppm
+        base_fee_changed = new_base_fee_msat is not None and current_base_fee_msat != new_base_fee_msat
+        min_htlc_changed = new_min_htlc is not None and my_policy.min_htlc != new_min_htlc
+        max_htlc_changed = new_max_htlc is not None and my_policy.max_htlc_msat != new_max_htlc
+        time_lock_delta_changed = new_time_lock_delta is not None and my_policy.time_lock_delta != new_time_lock_delta
         is_changed = fee_ppm_changed or base_fee_changed or min_htlc_changed or max_htlc_changed or time_lock_delta_changed
 
         if is_changed or arguments.verbose:
