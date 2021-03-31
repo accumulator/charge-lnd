@@ -13,8 +13,6 @@ from .matcher import Matcher
 from .electrum import Electrum
 import charge_lnd.fmt as fmt
 
-MAX_CHANNEL_CAPACITY = 16777215
-
 def debug(message):
     sys.stderr.write(message + "\n")
 
