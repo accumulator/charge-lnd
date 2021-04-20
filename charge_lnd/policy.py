@@ -49,6 +49,8 @@ class Policy:
             raise Exception('proportional strategy requires min_fee_ppm and max_fee_ppm properties')
         ratio = channel.local_balance/(channel.local_balance + channel.remote_balance)
         ppm = int(ppm_min + (1.0 - ratio) * (ppm_max - ppm_min))
+        # clamp to 0..inf
+        ppm = max(ppm,0)
         return (self.config.getint('base_fee_msat'),
                 ppm,
                 self.config.getint('min_htlc_msat'),
