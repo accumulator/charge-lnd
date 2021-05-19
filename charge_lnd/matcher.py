@@ -173,9 +173,9 @@ class Matcher:
             return False
         (block,tx,output) = fmt.lnd_to_cl_scid(channel.chan_id)
         age = info.block_height - block
-        if 'chan.min_age' in config and not config.getint('chan.min_age') >= age:
+        if 'chan.min_age' in config and not config.getint('chan.min_age') <= age:
             return False
-        if 'chan.max_age' in config and not config.getint('chan.max_age') <= age:
+        if 'chan.max_age' in config and not config.getint('chan.max_age') >= age:
             return False
 
         return True
