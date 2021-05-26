@@ -32,6 +32,9 @@ def main():
         debug("Config file not found")
         return False
 
+    # few systems are not utf-8, force so we don't bomb out
+    sys.stdout.reconfigure(encoding='utf-8')
+
     matcher = Matcher(lnd, config)
 
     my_pubkey = lnd.get_own_pubkey()
