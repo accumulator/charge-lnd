@@ -38,7 +38,7 @@ fee_ppm = 1
 
 [encourage-routing]
 # 'autobalance' (lower fees so using outbound is more attractive) larger channels (min_capacity 2M sats)
-# to larger nodes (node has at least 5M sats) if balance ratio >= 0.9 (more than 90% on our side)
+# to larger nodes (node has at least 50M sats) if balance ratio >= 0.9 (more than 90% on our side)
 chan.min_ratio = 0.9
 chan.min_capacity = 2000000
 node.min_capacity = 50000000
@@ -49,7 +49,7 @@ fee_ppm = 5
 
 [discourage-routing]
 # 'autobalance' (higher fees so using outbound is less attractive) larger channels (min_capacity 2M sats)
-# to larger nodes (node has at least 5M sats) if balance ratio <= 0.2 (less than 20% on our side)
+# to larger nodes (node has at least 50M sats) if balance ratio <= 0.2 (less than 20% on our side)
 chan.max_ratio = 0.2
 chan.min_capacity = 2000000
 node.min_capacity = 50000000
