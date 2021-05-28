@@ -149,7 +149,7 @@ Available strategies:
 |:--|:--|:--|
 |**ignore** | ignores the channel||
 |**static** | sets fixed base fee and fee rate values.| **base_fee_msat**<br>**fee_ppm**|
-|**match_peer** | sets the same base fee and fee rate values as the peer||
+|**match_peer** | sets the same base fee and fee rate values as the peer|if **base_fee_msat** or **fee_ppm** are set the override the peer values|
 |**cost** | calculate cost for opening channel, and set ppm to cover cost when channel depletes.|**base_fee_msat**<br>**cost_factor**|
 |**onchain_fee** | sets the fees to a % equivalent of a standard onchain payment (Requires --electrum-server to be specified.)| **onchain_fee_btc** BTC<br>within **onchain_fee_numblocks** blocks.<br>**base_fee_msat** is used if defined.|
 |**proportional** | sets fee ppm according to balancedness.|**base_fee_msat**<br>**min_fee_ppm**<br>**max_fee_ppm**|

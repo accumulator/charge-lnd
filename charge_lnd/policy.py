@@ -61,8 +61,8 @@ class Policy:
         chan_info = self.lnd.get_chan_info(channel.chan_id)
         my_pubkey = self.lnd.get_own_pubkey()
         peernode_policy = chan_info.node1_policy if chan_info.node2_pub == my_pubkey else chan_info.node2_policy
-        return (peernode_policy.fee_base_msat,
-                peernode_policy.fee_rate_milli_msat,
+        return (self.config.getint('base_fee_msat', peernode_policy.fee_base_msat),
+                self.config.getint('fee_ppm', peernode_policy.fee_rate_milli_msat),
                 self.config.getint('min_htlc_msat'),
                 self.config.getint('max_htlc_msat'),
                 self.config.getint('time_lock_delta'))
