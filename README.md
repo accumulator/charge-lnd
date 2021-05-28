@@ -23,7 +23,7 @@ By default charge-lnd connects to `localhost:10009`, using the macaroon file in 
 If you need to change this, please have a look at the optional arguments `--grpc` and `--lnddir`.
 
 Python and PIP should be made available on the system before installation.
-The project and its dependencies can be installed by running:
+The project and its dependencies can be installed by running (don't forget the last dot):
 
 ```
 $ pip install -r requirements.txt .
