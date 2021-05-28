@@ -12,10 +12,13 @@ def read_nodelist(url):
         raw_ids = idfile.read().splitlines()
     node_list = []
     for raw_id in raw_ids:
+        raw_id = raw_id.split('#')[0]
         match = re.match("^([0-9a-z]{66})", raw_id)
         if match:
             node_list.append(match.group(0))
         else:
+            if raw_id.strip() == '':
+                continue
             debug("Ignored: invalid node pubkey '%s' in '%s'" % (raw_id,url))
     return node_list
 
@@ -24,10 +27,13 @@ def read_chanlist(url):
         raw_ids = idfile.read().splitlines()
     chan_list = []
     for raw_id in raw_ids:
+        raw_id = raw_id.split('#')[0]
         try:
             chan_id = fmt.parse_channel_id(raw_id)
             chan_list.append(chan_id)
         except:
+            if raw_id.strip() == '':
+                continue
             debug("Ignored: invalid channel id '%s' in '%s'" % (raw_id,url))
 
     return chan_list
