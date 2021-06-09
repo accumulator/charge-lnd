@@ -20,8 +20,6 @@ def main():
     argument_parser = get_argument_parser()
     arguments = argument_parser.parse_args()
 
-    lnd = Lnd(arguments.lnddir, arguments.grpc)
-
     if arguments.electrum_server:
         Electrum.set_server(arguments.electrum_server)
 
@@ -32,8 +30,14 @@ def main():
         debug("Config file not found")
         return False
 
+    if arguments.check:
+        debug("Configuration file is valid")
+        return True
+
     # few systems are not utf-8, force so we don't bomb out
     sys.stdout.reconfigure(encoding='utf-8')
+
+    lnd = Lnd(arguments.lnddir, arguments.grpc)
 
     matcher = Matcher(lnd, config)
 
@@ -119,6 +123,10 @@ def get_argument_parser():
                         dest="dry_run",
                         action="store_true",
                         help="Do not perform actions (for testing), print what we would do to stdout")
+    parser.add_argument("--check",
+                        dest="check",
+                        action="store_true",
+                        help="Do not perform actions, only check config file for valid syntax")
     parser.add_argument("-v", "--verbose",
                         action="store_true",
                         help="Be more verbose")
