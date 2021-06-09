@@ -1,12 +1,14 @@
 [Unit]
-Description=Adjust LND routing fees
 Documentation=https://github.com/accumulator/charge-lnd/blob/master/README.md
 Requires=lnd.service
 After=lnd.service
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/charge-lnd \
+
+# change /usr/local/bin and /var/lib/lnd to a path where you installed lnd
+# and a path to its datadir respectively
+ExecStart=/usr/local/bin/charge-lnd \
     --lnddir /var/lib/lnd \
     --grpc localhost:10009 \
     --config /etc/lnd-charge.config
