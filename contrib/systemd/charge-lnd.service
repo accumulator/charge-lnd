@@ -5,6 +5,7 @@ Requires=lnd.service
 After=lnd.service
 
 [Service]
+Type=oneshot
 ExecStart=/usr/bin/charge-lnd \
     --lnddir /var/lib/lnd \
     --grpc localhost:10009 \
