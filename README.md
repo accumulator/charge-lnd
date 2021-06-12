@@ -12,7 +12,7 @@ You don't need to have full admin rights to use charge-lnd. The following access
 - `onchain:read`
 - `info:read`
 
-You can create a suitably limited macaroon by issueing:
+You can create a suitably limited macaroon by issuing:
 
 ```
 $ lncli bakemacaroon offchain:read offchain:write onchain:read info:read --save_to=~/.lnd/data/chain/bitcoin/mainnet/charge-lnd.macaroon
