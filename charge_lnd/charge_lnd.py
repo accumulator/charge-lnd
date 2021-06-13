@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import argparse
-import configparser
 import sys
 import os
 
@@ -9,7 +8,8 @@ import colorama
 colorama.init()
 
 from .lnd import Lnd
-from .matcher import Matcher
+from .policy import Policies
+from .config import Config
 from .electrum import Electrum
 import charge_lnd.fmt as fmt
 
@@ -23,12 +23,11 @@ def main():
     if arguments.electrum_server:
         Electrum.set_server(arguments.electrum_server)
 
-    config = configparser.ConfigParser(converters={'list': lambda x: [i.strip() for i in x.split(',')]})
-    config.read(arguments.config)
-
     if not os.path.exists(arguments.config):
         debug("Config file not found")
         return False
+
+    config = Config(arguments.config)
 
     if arguments.check:
         debug("Configuration file is valid")
@@ -39,17 +38,17 @@ def main():
 
     lnd = Lnd(arguments.lnddir, arguments.grpc)
 
-    matcher = Matcher(lnd, config)
+    policies = Policies(lnd, config)
 
     my_pubkey = lnd.get_own_pubkey()
 
     channels = lnd.get_channels()
     for channel in channels:
-        policy = matcher.get_policy(channel)
+        policy = policies.get_policy_for(channel)
         if not policy:
             continue
 
-        (new_base_fee_msat, new_fee_ppm, new_min_htlc, new_max_htlc, new_time_lock_delta) = policy.execute(channel)
+        (new_base_fee_msat, new_fee_ppm, new_min_htlc, new_max_htlc, new_time_lock_delta) = policy.strategy.execute(channel)
 
         if channel.chan_id in lnd.feereport:
             (current_base_fee_msat, current_fee_ppm) = lnd.feereport[channel.chan_id]
