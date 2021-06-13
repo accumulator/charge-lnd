@@ -3,7 +3,7 @@ from setuptools import setup, find_packages, find_namespace_packages
 
 setup(
     name='charge-lnd',
-    version='0.1.2',
+    version='0.1.3',
     description='A simple policy based fee manager for LND',
     author='Sander van Grieken',
     author_email='sander@outrightsolutions.nl',
