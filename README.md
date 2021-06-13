@@ -155,9 +155,14 @@ Available strategies:
 |**proportional** | sets fee ppm according to balancedness.|**base_fee_msat**<br>**min_fee_ppm**<br>**max_fee_ppm**|
 
 All strategies (except the ignore strategy) will apply the following properties if defined:
-- **min_htlc_msat**
-- **max_htlc_msat**
-- **time_lock_delta**
+
+|Property|Description|Values|
+|:--|:--|:--|
+| **min_htlc_msat** | Minimum size (in msat) of HTLC to allow | # msat |
+| **max_htlc_msat** | Maximum size (in msat) of HTLC to allow | # msat |
+| **time_lock_delta** | Time Lock Delta | # blocks |
+| **min_fee_ppm_delta** | Minimum change in fees (ppm) before updating channel | ppm delta |
+
 
 ## Contributing
 
