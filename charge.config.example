@@ -1,6 +1,6 @@
 [default]
 strategy = static
-base_fee_msat = 1000
+base_fee_msat = 1_000
 fee_ppm = 10
 
 [ignored_channels]
@@ -11,9 +11,9 @@ node.id = 02da8d5a759ee9e4438da617cfdb61c87f723fb76c4b6371b877d0347abe953a4f,
 strategy = ignore
 
 [expensive]
-# match channels where the peer node has set a high (>=8000 ppm) fee rate
+# match channels where the peer node has set a high (>=8_000 ppm) fee rate
 # and set the same fee rate on our side (strategy=match_peer)
-chan.min_fee_ppm = 8000
+chan.min_fee_ppm = 8_000
 
 strategy = match_peer
 
@@ -22,13 +22,13 @@ strategy = match_peer
 chan.private = true
 
 strategy = static
-base_fee_msat = 1000
+base_fee_msat = 1_000
 fee_ppm = 100
 
 [beginner-node]
 # set lower fees on channels with smaller peers, that have few channels (4-8 channels) total
-# and limited node size (max_capacity=1000000)
-node.max_capacity = 1000000
+# and limited node size (max_capacity=1_000_000)
+node.max_capacity = 1_000_000
 node.min_channels = 4
 node.max_channels = 8
 
@@ -40,8 +40,8 @@ fee_ppm = 1
 # 'autobalance' (lower fees so using outbound is more attractive) larger channels (min_capacity 2M sats)
 # to larger nodes (node has at least 50M sats) if balance ratio >= 0.9 (more than 90% on our side)
 chan.min_ratio = 0.9
-chan.min_capacity = 2000000
-node.min_capacity = 50000000
+chan.min_capacity = 2_000_000
+node.min_capacity = 5_000_0000
 
 strategy = static
 base_fee_msat = 500
@@ -51,11 +51,11 @@ fee_ppm = 5
 # 'autobalance' (higher fees so using outbound is less attractive) larger channels (min_capacity 2M sats)
 # to larger nodes (node has at least 50M sats) if balance ratio <= 0.2 (less than 20% on our side)
 chan.max_ratio = 0.2
-chan.min_capacity = 2000000
-node.min_capacity = 50000000
+chan.min_capacity = 2_000_000
+node.min_capacity = 5_000_0000
 
 strategy = static
-base_fee_msat = 10000
+base_fee_msat = 10_000
 fee_ppm = 500
 
 [proportional]
@@ -63,10 +63,10 @@ fee_ppm = 500
 # fee_ppm decreases linearly with the channel balance ratio (fee_ppm_min when ratio is 1, fee_ppm_max when ratio is 0)
 chan.min_ratio = 0.2
 chan.max_ratio = 0.9
-chan.min_capacity = 1000000
+chan.min_capacity = 1_000_000
 
 strategy = proportional
-base_fee_msat = 1000
+base_fee_msat = 1_000
 min_fee_ppm = 10
 max_fee_ppm = 200
 
@@ -84,7 +84,7 @@ fee_ppm = 1
 chan.initiator = true
 
 strategy = cost
-base_fee_msat = 1000
+base_fee_msat = 1_000
 cost_factor = 1.5
 
 #[on-chain-competitive]
@@ -92,14 +92,14 @@ cost_factor = 1.5
 # If an on-chain TX of 0.1 BTC within 6 blocks would amount to a 0.0001 fee (=0.1%), this policy sets the channel fee to 0.1% (or 1000 ppm)
 #node.id = 03864ef025fde8fb587d989186ce6a4a186895ee44a926bfc370e2c366597a3f8f
 #strategy = onchain_fee
-#base_fee_msat = 1000
+#base_fee_msat = 1_000
 #onchain_fee_btc = 0.1
 #onchain_fee_numblocks = 6
 
 [micropayments-only]
-# set max_htlc_msat to 1000 sat (1M msat)
+# set max_htlc_msat to 1_000 sat (1M msat)
 chan.id = 636374x680x1
 strategy = static
-base_fee_msat = 1000
+base_fee_msat = 1_000
 fee_ppm = 10
-max_htlc_msat = 1000000
+max_htlc_msat = 1_000_000
