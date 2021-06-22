@@ -95,11 +95,10 @@ class Policies:
             return None
 
         if self.config.default:
-           final = policy.apply('default', self.config.default)
-           if not final:
-               return None
+           if policy.apply('default', self.config.default):
+               return policy
 
-        return policy
+        return None
 
     def eval_matchers(self, channel, policy, policy_conf):
         map = {
