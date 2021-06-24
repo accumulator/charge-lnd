@@ -73,6 +73,9 @@ class Policy:
     def getfloat(self, key, default=None):
         return self._get(key, float, default)
 
+    def set(self, key, value):
+        self.config[key] = value
+
 
 class Policies:
     def __init__(self, lnd, config):

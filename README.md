@@ -64,7 +64,7 @@ A single policy consists of;
 - a set of criteria to match against the channel and/or node (e.g. minimum channel capacity)
 - a fee strategy (how to calculate the new channel fees)
 
-The defined criteria are compared against the open channels and associated nodes.
+The defined criteria are compared against the open channels and their associated nodes.
 The fee strategy then executed to determine what the new channel fees should be.
 
 There is a special `[default]` section, that will be used if none of the policies match a channel. The `[default]` section only contains a strategy, not any matching criteria.
