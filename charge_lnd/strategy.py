@@ -96,6 +96,9 @@ def strategy_onchain_fee(channel, policy, **kwargs):
     if not Electrum.host or not Electrum.port:
         raise Exception("No electrum server specified, cannot use strategy 'onchain_fee'")
 
+    if policy.getint('min_fee_ppm_delta',-1) < 0:
+        policy.set('min_fee_ppm_delta', 5) # set delta to 5 if not defined
+
     numblocks = policy.getint('onchain_fee_numblocks', 6)
     sat_per_byte = Electrum.get_fee_estimate(numblocks)
     if sat_per_byte < 1:
