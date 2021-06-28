@@ -85,6 +85,28 @@ This policy matches the channels against the `chan.min_capacity` criterium. Only
 
 If a channel matches this policy, the `static` strategy is then used, which takes the `base_fee_msat` and `fee_ppm`  properties defined in the policy and applies them to the channel.
 
+### Non-final policies
+
+You can also define a 'non-final' policy. This is simply a policy without a strategy.
+It allows you to set default values for properties used by later policies, e.g. `base_fee_msat`, `fee_ppm`, `min_fee_ppm_delta` etc.
+
+Processing continues after matching a non-final policy.
+
+Example:
+```
+[mydefaults]
+chan.max_capacity = 5_000_000
+min_fee_ppm_delta = 10
+base_fee_msat = 2000
+
+[someotherpolicy]
+chan.min_capacity = 500_000
+strategy = static
+fee_ppm = 50
+```
+
+This will, for channels that match `mydefaults` and after that `someotherpolicy`, set fees to 2 sat base fee and 50 ppm, and uses a minimum fee delta of 10 when applying a fee change for that channel.
+
 ### More examples
 
 Maintain a friends list with lower fees:
