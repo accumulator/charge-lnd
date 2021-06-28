@@ -1,7 +1,13 @@
 [default]
+# 'default' is special, it is used if no other policy matches a channel
 strategy = static
 base_fee_msat = 1_000
 fee_ppm = 10
+
+[mydefaults]
+# no strategy, so this only sets some defaults
+base_fee_msat = 1_000
+min_fee_ppm_delta = 5
 
 [ignored_channels]
 # don't let charge-lnd set fees (strategy=ignore) for channels to/from the specified nodes
@@ -22,7 +28,6 @@ strategy = match_peer
 chan.private = true
 
 strategy = static
-base_fee_msat = 1_000
 fee_ppm = 100
 
 [beginner-node]
@@ -66,7 +71,6 @@ chan.max_ratio = 0.9
 chan.min_capacity = 1_000_000
 
 strategy = proportional
-base_fee_msat = 1_000
 min_fee_ppm = 10
 max_fee_ppm = 200
 
@@ -84,7 +88,6 @@ fee_ppm = 1
 chan.initiator = true
 
 strategy = cost
-base_fee_msat = 1_000
 cost_factor = 1.5
 
 #[on-chain-competitive]
