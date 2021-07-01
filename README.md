@@ -42,16 +42,19 @@ When running the install as `root`, `charge-lnd` will be installed to `/usr/loca
 charge-lnd takes only a minimal set of parameters:
 
 ```
-usage: charge-lnd [-h] [--lnddir LNDDIR] [--grpc GRPC]
-                  [--electrum-server ELECTRUM_SERVER] [-c CONFIG]
+usage: charge-lnd [-h] [--lnddir LNDDIR] [--grpc GRPC] [--electrum-server ELECTRUM_SERVER]
+                  [--dry-run] [--check] [-v] -c CONFIG
 
 optional arguments:
   -h, --help            show this help message and exit
   --lnddir LNDDIR       (default ~/.lnd) lnd directory
   --grpc GRPC           (default localhost:10009) lnd gRPC endpoint
   --electrum-server ELECTRUM_SERVER
-                        (no default) electrum server host:port
-  --dry-run             Do not perform actions (for testing), print what we would do to stdout
+                        (optional, no default) electrum server host:port . Needed for
+                        onchain_fee.
+  --dry-run             Do not perform actions (for testing), print what we would do to
+                        stdout
+  --check               Do not perform actions, only check config file for valid syntax
   -v, --verbose         Be more verbose
   -c CONFIG, --config CONFIG
                         path to config file
