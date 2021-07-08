@@ -3,6 +3,7 @@ import sys
 import functools
 
 from . import fmt
+from .config import Config
 from .electrum import Electrum
 
 def debug(message):
@@ -106,3 +107,28 @@ def strategy_onchain_fee(channel, policy, **kwargs):
     reference_payment = policy.getfloat('onchain_fee_btc', 0.1)
     fee_ppm = int((0.01 / reference_payment) * (223 * sat_per_byte))
     return (policy.getint('base_fee_msat'), fee_ppm)
+
+@strategy(name = 'use_config')
+def strategy_use_config(channel, policy, **kwargs):
+    from .policy import Policies
+
+    rule_file = policy.get('config_file')
+    if not rule_file:
+        raise Exception("missing `config_file` property for strategy 'use_config'")
+
+    config = Config(rule_file.replace('file://',''))
+    policies = Policies(kwargs['lnd'], config)
+
+    ext_policy = policies.get_policy_for(channel)
+    if not ext_policy:
+        return (None,None)
+
+    r = ext_policy.strategy.execute(channel)
+
+    # propagate values other than direct channel properties
+    policy.name = '%s (from %s)' % (ext_policy.name, rule_file)
+    policy.set('strategy', ext_policy.get('strategy'))
+    if ext_policy.getint('min_fee_ppm_delta',-1) != -1:
+        policy.set('min_fee_ppm_delta', ext_policy.getint('min_fee_ppm_delta'))
+
+    return r

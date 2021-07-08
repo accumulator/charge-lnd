@@ -14,7 +14,9 @@ class Config:
         self.policies = []
 
         self.config = configparser.ConfigParser(converters={'list': lambda x: [i.strip() for i in x.split(',')]})
-        self.config.read(config_file)
+
+        with open(config_file, "r") as f:
+            self.config.read_file(f)
 
         sections = self.config.sections()
         for s in sections:
