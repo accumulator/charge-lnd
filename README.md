@@ -140,7 +140,16 @@ fee_ppm = 2
 
 More elaborate examples can be found in the [charge.config.example](charge.config.example) file.
 
-### Properties
+### Using Docker
+
+You'll need to map the LND dir and the volume containing the policy config file(s) into the container
+and pass the endpoint of the LND instance.
+
+```
+docker run --rm -it -v /vol/my-charge-lnd-configs:/app -v ~/.lnd:/home/charge/.lnd accumulator/charge-lnd --dry-run --grpc lnd-host:10009 -c /app/charge.config
+```
+
+## Properties
 
 Currently available properties:
 
