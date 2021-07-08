@@ -111,6 +111,7 @@ def strategy_onchain_fee(channel, policy, **kwargs):
 @strategy(name = 'use_config')
 def strategy_use_config(channel, policy, **kwargs):
     from .policy import Policies
+
     rule_file = policy.get('config_file')
     if not rule_file:
         raise Exception("missing `config_file` property for strategy 'use_config'")
