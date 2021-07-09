@@ -42,8 +42,8 @@ jobs:
         with:
           push: ${{ startsWith(github.ref, 'refs/tags/') }}
           platforms: linux/amd64,linux/arm64,linux/arm/v7
-          tags: ${{ steps.meta.output.tags }}
-          labels: ${{ steps.meta.output.labels }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
       - name: image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
