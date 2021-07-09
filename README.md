@@ -37,6 +37,10 @@ $ pip3 install -r requirements.txt .
 
 When running the install as `root`, `charge-lnd` will be installed to `/usr/local/bin`. Otherwise `charge-lnd` will be installed to `$HOME/.local/bin`.
 
+### Running charge-lnd periodically
+
+See [cron and systemd examples](/contrib)
+
 ## Usage
 
 charge-lnd takes only a minimal set of parameters:

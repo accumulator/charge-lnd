@@ -65,7 +65,7 @@ fee_ppm = 500
 
 [proportional]
 # 'proportional' can also be used to auto balance (lower fee rate when low remote balance & higher rate when higher remote balance)
-# fee_ppm decreases linearly with the channel balance ratio (fee_ppm_min when ratio is 1, fee_ppm_max when ratio is 0)
+# fee_ppm decreases linearly with the channel balance ratio (min_fee_ppm when ratio is 1, max_fee_ppm when ratio is 0)
 chan.min_ratio = 0.2
 chan.max_ratio = 0.9
 chan.min_capacity = 1_000_000
