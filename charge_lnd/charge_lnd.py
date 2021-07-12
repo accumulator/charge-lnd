@@ -89,8 +89,8 @@ def main():
                 s = ''
                 if fee_ppm_changed:
                     s = ' ➜ ' + fmt.col_hi(new_fee_ppm)
-                if min_fee_ppm_delta > abs(new_fee_ppm - current_fee_ppm):
-                    s = s + ' (min_fee_ppm_delta=%d)' % min_fee_ppm_delta
+                    if min_fee_ppm_delta > abs(new_fee_ppm - current_fee_ppm):
+                        s = s + ' (min_fee_ppm_delta=%d)' % min_fee_ppm_delta
                 print("  fee_ppm:         %s%s" % (fmt.col_hi(current_fee_ppm), s) )
             if new_min_htlc is not None or arguments.verbose:
                 s = ''
