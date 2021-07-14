@@ -16,6 +16,18 @@ node.id = 02da8d5a759ee9e4438da617cfdb61c87f723fb76c4b6371b877d0347abe953a4f,
 
 strategy = ignore
 
+[known-one-way-drains]
+node.id = 033d8656219478701227199cbd6f670335c8d408a92ae88b962c49d4dc0e83e025,
+  03cde60a6323f7122d5178255766e38114b4722ede08f7c9e0c5df9b912cc201d6
+  021c97a90a411ff2b10dc2a8e32de2f29d2fa49d41bfbb52bd416e460db0747d0d,
+  03037dc08e9ac63b82581f79b662a4d0ceca8a8ca162b1af3551595b8f2d97b70a,
+  030c3f19d742ca294a55c00376b3b355c3c90d61c6b6b39554dbc7ac19b141c14f,
+  03d607f3e69fd032524a867b288216bfab263b6eaee4e07783799a6fe69bb84fac,
+  02a04446caa81636d60d63b066f2814cbd3a6b5c258e3172cbdded7a16e2cfff4c
+
+strategy = static
+fee_ppm = 3500
+
 [expensive]
 # match channels where the peer node has set a high (>=8_000 ppm) fee rate
 # and set the same fee rate on our side (strategy=match_peer)
