@@ -21,7 +21,7 @@ COPY . .
 RUN pip install -r requirements.txt .
 RUN chown -R charge:charge /home/charge/src
 
-WORKDIR /home/charge
+WORKDIR /app
 USER charge
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint"]
