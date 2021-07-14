@@ -30,7 +30,11 @@ class Lnd:
         self.channels = None
         self.node_info = {}
         self.chan_info = {}
-        self.feereport = self.get_feereport()
+        self.valid = True
+        try:
+            self.feereport = self.get_feereport()
+        except grpc._channel._InactiveRpcError:
+            self.valid = False
 
     @staticmethod
     def get_credentials(lnd_dir):

@@ -37,6 +37,9 @@ def main():
     sys.stdout.reconfigure(encoding='utf-8')
 
     lnd = Lnd(arguments.lnddir, arguments.grpc)
+    if not lnd.valid:
+        debug("Could not connect to gRPC endpoint")
+        return False
 
     policies = Policies(lnd, config)
 
