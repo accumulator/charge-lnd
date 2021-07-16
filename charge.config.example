@@ -9,6 +9,11 @@ fee_ppm = 10
 base_fee_msat = 1_000
 min_fee_ppm_delta = 5
 
+[zerobasefee-initiative]
+# set base_fee_msat default to 0 if peer sets zero base fees
+chan.max_fee_ppm = 0
+base_fee_msat = 0
+
 [ignored_channels]
 # don't let charge-lnd set fees (strategy=ignore) for channels to/from the specified nodes
 node.id = 02da8d5a759ee9e4438da617cfdb61c87f723fb76c4b6371b877d0347abe953a4f,
