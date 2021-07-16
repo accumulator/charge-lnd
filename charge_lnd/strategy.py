@@ -35,12 +35,26 @@ class StrategyDelegate:
             # set policy htlc limits if not overruled by the strategy
             if len(result) == 2:
                 result = result + ( self.policy.getint('min_htlc_msat'),
-                                    self.policy.getint('max_htlc_msat'),
+                                    self.effective_max_htlc_msat(channel),
                                     self.policy.getint('time_lock_delta') )
             return result
         except Exception as e:
             debug("Error executing strategy '%s'. (Error=%s)" % (strategy, str(e)) )
             return strategy_ignore(channel, self.policy)
+
+    def effective_max_htlc_msat(self, channel):
+        result = self.policy.getint('max_htlc_msat')
+        ratio = self.policy.getfloat('max_htlc_msat_ratio')
+        if ratio:
+            ratio = max(0,min(1,ratio))
+            channel_cap = channel.capacity
+            channel_cap = channel_cap - channel.remote_constraints.chan_reserve_sat
+            ratiomax = int(ratio * channel_cap * 1000)
+            if not result:
+                result = ratiomax
+            else:
+                result = min(ratiomax,result)
+        return result
 
 @strategy(name = 'ignore')
 def strategy_ignore(channel, policy, **kwargs):

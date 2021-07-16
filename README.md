@@ -199,6 +199,7 @@ All strategies (except the ignore strategy) will apply the following properties 
 |:--|:--|:--|
 | **min_htlc_msat** | Minimum size (in msat) of HTLC to allow | # msat |
 | **max_htlc_msat** | Maximum size (in msat) of HTLC to allow | # msat |
+| **max_htlc_msat_ratio** | Maximum size of HTLC to allow as a fraction of total channel capacity | 0..1 |
 | **time_lock_delta** | Time Lock Delta | # blocks |
 | **min_fee_ppm_delta** | Minimum change in fees (ppm) before updating channel | ppm delta |
 
