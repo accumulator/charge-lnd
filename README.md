@@ -4,42 +4,7 @@ This script matches your open Lightning channels against a number of customizabl
 
 ## Installation
 
-This script needs a moderately recent LND (https://github.com/lightningnetwork/lnd) instance running.
-
-You don't need to have full admin rights to use charge-lnd. The following access rights are used:
-- `offchain:read`
-- `offchain:write`
-- `onchain:read`
-- `info:read`
-
-You can create a suitably limited macaroon by issuing:
-
-```
-$ lncli bakemacaroon offchain:read offchain:write onchain:read info:read --save_to=~/.lnd/data/chain/bitcoin/mainnet/charge-lnd.macaroon
-```
-
-By default charge-lnd connects to `localhost:10009`, using the macaroon file in `~/.lnd/data/chain/bitcoin/mainnet/charge-lnd.macaroon`. If `charge-lnd.macaroon` is not found, `admin.macaroon` will be tried.
-
-If you need to change this, please have a look at the optional arguments `--grpc` and `--lnddir`.
-
-Python and PIP should be made available on the system before installation.
-The project and its dependencies can be installed by running (don't forget the last dot):
-
-```
-$ pip install -r requirements.txt .
-```
-
-On some systems using Python 3, use pip3 instead:
-
-```
-$ pip3 install -r requirements.txt .
-```
-
-When running the install as `root`, `charge-lnd` will be installed to `/usr/local/bin`. Otherwise `charge-lnd` will be installed to `$HOME/.local/bin`.
-
-### Running charge-lnd periodically
-
-See [cron and systemd examples](/contrib)
+See [INSTALL.md](/INSTALL.md)
 
 ## Usage
 
@@ -143,15 +108,6 @@ fee_ppm = 2
 ```
 
 More elaborate examples can be found in the [charge.config.example](charge.config.example) file.
-
-### Using Docker
-
-You'll need to map the LND dir and the volume containing the policy config file(s) into the container
-and pass the endpoint of the LND instance.
-
-```
-docker run --rm -it -v /vol/my-charge-lnd-configs:/app -v ~/.lnd:/home/charge/.lnd accumulator/charge-lnd --dry-run --grpc lnd-host:10009 -c /app/charge.config
-```
 
 ## Properties
 
