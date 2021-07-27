@@ -69,6 +69,8 @@ General note: it is advised to not run charge-lnd too often (more frequently tha
 
 ## Raspiblitz
 
+[Full Guide by The Count](https://nullcount.com/install-charge-lnd-routing-fees-on-autopilot/)
+
 1. install charge-lnd as user 'bitcoin'
 2. create a policy config file (/home/bitcoin/charge-lnd/charge.config)
 3. create a cron entry to run charge-lnd once per hour
