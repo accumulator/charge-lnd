@@ -161,6 +161,8 @@ class Policies:
         accepted = ['id','initiator','private',
                     'min_ratio','max_ratio',
                     'min_capacity','max_capacity',
+                    'min_local_balance','max_local_balance',
+                    'min_remote_balance','max_remote_balance',
                     'min_base_fee_msat','max_base_fee_msat',
                     'min_fee_ppm','max_fee_ppm',
                     'min_age','max_age'
@@ -195,6 +197,14 @@ class Policies:
         if 'chan.max_capacity' in config and not config.getint('chan.max_capacity') >= channel.capacity:
             return False
         if 'chan.min_capacity' in config and not config.getint('chan.min_capacity') <= channel.capacity:
+            return False
+        if 'chan.max_local_balance' in config and not config.getint('chan.max_local_balance') >= channel.local_balance:
+            return False
+        if 'chan.min_local_balance' in config and not config.getint('chan.min_local_balance') <= channel.local_balance:
+            return False
+        if 'chan.max_remote_balance' in config and not config.getint('chan.max_remote_balance') >= channel.remote_balance:
+            return False
+        if 'chan.min_remote_balance' in config and not config.getint('chan.min_remote_balance') <= channel.remote_balance:
             return False
 
         chan_info = self.lnd.get_chan_info(channel.chan_id)

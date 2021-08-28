@@ -122,6 +122,10 @@ Currently available properties:
 | **chan.min_ratio** | match on channel ratio|0..1|
 | **chan.min_capacity** | match on channel capacity|# of sats|
 | **chan.max_capacity** | match on channel capacity|# of sats|
+| **chan.min_local_balance** | match on channel local balance|# of sats|
+| **chan.max_local_balance** | match on channel local balance|# of sats|
+| **chan.min_remote_balance** | match on channel remote balance|# of sats|
+| **chan.max_remote_balance** | match on channel remote balance|# of sats|
 | **chan.min_age** | match on channel age|# of blocks|
 | **chan.max_age** | match on channel age|# of blocks|
 | **chan.min_base_fee_msat** | match on channel peer policy|# of msats|
