@@ -312,6 +312,21 @@ class LightningStub(object):
                 request_serializer=rpc__pb2.BakeMacaroonRequest.SerializeToString,
                 response_deserializer=rpc__pb2.BakeMacaroonResponse.FromString,
                 )
+        self.ListMacaroonIDs = channel.unary_unary(
+                '/lnrpc.Lightning/ListMacaroonIDs',
+                request_serializer=rpc__pb2.ListMacaroonIDsRequest.SerializeToString,
+                response_deserializer=rpc__pb2.ListMacaroonIDsResponse.FromString,
+                )
+        self.DeleteMacaroonID = channel.unary_unary(
+                '/lnrpc.Lightning/DeleteMacaroonID',
+                request_serializer=rpc__pb2.DeleteMacaroonIDRequest.SerializeToString,
+                response_deserializer=rpc__pb2.DeleteMacaroonIDResponse.FromString,
+                )
+        self.ListPermissions = channel.unary_unary(
+                '/lnrpc.Lightning/ListPermissions',
+                request_serializer=rpc__pb2.ListPermissionsRequest.SerializeToString,
+                response_deserializer=rpc__pb2.ListPermissionsResponse.FromString,
+                )
 
 
 class LightningServicer(object):
@@ -347,8 +362,9 @@ class LightningServicer(object):
 
     def ChannelBalance(self, request, context):
         """lncli: `channelbalance`
-        ChannelBalance returns the total funds available across all open channels
-        in satoshis.
+        ChannelBalance returns a report on the total funds across all open channels,
+        categorized in local/remote, pending local/remote and unsettled local/remote
+        balances.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -381,7 +397,7 @@ class LightningServicer(object):
         """lncli: `sendcoins`
         SendCoins executes a request to send coins to a particular address. Unlike
         SendMany, this RPC call only allows creating a single output at a time. If
-        neither target_conf, or sat_per_byte are set, then the internal wallet will
+        neither target_conf, or sat_per_vbyte are set, then the internal wallet will
         consult its fee model to determine a fee for the default confirmation
         target.
         """
@@ -413,7 +429,7 @@ class LightningServicer(object):
     def SendMany(self, request, context):
         """lncli: `sendmany`
         SendMany handles a request for a transaction that creates multiple specified
-        outputs in parallel. If neither target_conf, or sat_per_byte are set, then
+        outputs in parallel. If neither target_conf, or sat_per_vbyte are set, then
         the internal wallet will consult its fee model to determine a fee for the
         default confirmation target.
         """
@@ -621,8 +637,10 @@ class LightningServicer(object):
         """lncli: `abandonchannel`
         AbandonChannel removes all channel state from the database except for a
         close summary. This method can be used to get rid of permanently unusable
-        channels due to bugs fixed in newer versions of lnd. Only available
-        when in debug builds of lnd.
+        channels due to bugs fixed in newer versions of lnd. This method can also be
+        used to remove externally funded channels where the funding transaction was
+        never broadcast. Only available for non-externally funded channels in dev
+        build.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -871,8 +889,9 @@ class LightningServicer(object):
         """lncli: `fwdinghistory`
         ForwardingHistory allows the caller to query the htlcswitch for a record of
         all HTLCs forwarded within the target time range, and integer offset
-        within that time range. If no time-range is specified, then the first chunk
-        of the past 24 hrs of forwarding history are returned.
+        within that time range, for a maximum number of events. If no maximum number
+        of events is specified, up to 100 events will be returned. If no time-range
+        is specified, then events will be returned in the order that they occured.
 
         A list of forwarding events are returned. The size of each forwarding event
         is 40 bytes, and the max message size able to be returned in gRPC is 4 MiB.
@@ -949,6 +968,32 @@ class LightningServicer(object):
         BakeMacaroon allows the creation of a new macaroon with custom read and
         write permissions. No first-party caveats are added since this can be done
         offline.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ListMacaroonIDs(self, request, context):
+        """lncli: `listmacaroonids`
+        ListMacaroonIDs returns all root key IDs that are in use.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def DeleteMacaroonID(self, request, context):
+        """lncli: `deletemacaroonid`
+        DeleteMacaroonID deletes the specified macaroon ID and invalidates all
+        macaroons derived from that ID.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ListPermissions(self, request, context):
+        """lncli: `listpermissions`
+        ListPermissions lists all RPC method URIs and their required macaroon
+        permissions to access them.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -1237,6 +1282,21 @@ def add_LightningServicer_to_server(servicer, server):
                     request_deserializer=rpc__pb2.BakeMacaroonRequest.FromString,
                     response_serializer=rpc__pb2.BakeMacaroonResponse.SerializeToString,
             ),
+            'ListMacaroonIDs': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListMacaroonIDs,
+                    request_deserializer=rpc__pb2.ListMacaroonIDsRequest.FromString,
+                    response_serializer=rpc__pb2.ListMacaroonIDsResponse.SerializeToString,
+            ),
+            'DeleteMacaroonID': grpc.unary_unary_rpc_method_handler(
+                    servicer.DeleteMacaroonID,
+                    request_deserializer=rpc__pb2.DeleteMacaroonIDRequest.FromString,
+                    response_serializer=rpc__pb2.DeleteMacaroonIDResponse.SerializeToString,
+            ),
+            'ListPermissions': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListPermissions,
+                    request_deserializer=rpc__pb2.ListPermissionsRequest.FromString,
+                    response_serializer=rpc__pb2.ListPermissionsResponse.SerializeToString,
+            ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
             'lnrpc.Lightning', rpc_method_handlers)
@@ -1271,6 +1331,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1279,7 +1340,7 @@ class Lightning(object):
             rpc__pb2.WalletBalanceRequest.SerializeToString,
             rpc__pb2.WalletBalanceResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def ChannelBalance(request,
@@ -1287,6 +1348,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1295,7 +1357,7 @@ class Lightning(object):
             rpc__pb2.ChannelBalanceRequest.SerializeToString,
             rpc__pb2.ChannelBalanceResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def GetTransactions(request,
@@ -1303,6 +1365,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1311,7 +1374,7 @@ class Lightning(object):
             rpc__pb2.GetTransactionsRequest.SerializeToString,
             rpc__pb2.TransactionDetails.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def EstimateFee(request,
@@ -1319,6 +1382,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1327,7 +1391,7 @@ class Lightning(object):
             rpc__pb2.EstimateFeeRequest.SerializeToString,
             rpc__pb2.EstimateFeeResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def SendCoins(request,
@@ -1335,6 +1399,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1343,7 +1408,7 @@ class Lightning(object):
             rpc__pb2.SendCoinsRequest.SerializeToString,
             rpc__pb2.SendCoinsResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def ListUnspent(request,
@@ -1351,6 +1416,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1359,7 +1425,7 @@ class Lightning(object):
             rpc__pb2.ListUnspentRequest.SerializeToString,
             rpc__pb2.ListUnspentResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def SubscribeTransactions(request,
@@ -1367,6 +1433,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1375,7 +1442,7 @@ class Lightning(object):
             rpc__pb2.GetTransactionsRequest.SerializeToString,
             rpc__pb2.Transaction.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def SendMany(request,
@@ -1383,6 +1450,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1391,7 +1459,7 @@ class Lightning(object):
             rpc__pb2.SendManyRequest.SerializeToString,
             rpc__pb2.SendManyResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def NewAddress(request,
@@ -1399,6 +1467,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1407,7 +1476,7 @@ class Lightning(object):
             rpc__pb2.NewAddressRequest.SerializeToString,
             rpc__pb2.NewAddressResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def SignMessage(request,
@@ -1415,6 +1484,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1423,7 +1493,7 @@ class Lightning(object):
             rpc__pb2.SignMessageRequest.SerializeToString,
             rpc__pb2.SignMessageResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def VerifyMessage(request,
@@ -1431,6 +1501,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1439,7 +1510,7 @@ class Lightning(object):
             rpc__pb2.VerifyMessageRequest.SerializeToString,
             rpc__pb2.VerifyMessageResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def ConnectPeer(request,
@@ -1447,6 +1518,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1455,7 +1527,7 @@ class Lightning(object):
             rpc__pb2.ConnectPeerRequest.SerializeToString,
             rpc__pb2.ConnectPeerResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def DisconnectPeer(request,
@@ -1463,6 +1535,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1471,7 +1544,7 @@ class Lightning(object):
             rpc__pb2.DisconnectPeerRequest.SerializeToString,
             rpc__pb2.DisconnectPeerResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def ListPeers(request,
@@ -1479,6 +1552,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1487,7 +1561,7 @@ class Lightning(object):
             rpc__pb2.ListPeersRequest.SerializeToString,
             rpc__pb2.ListPeersResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def SubscribePeerEvents(request,
@@ -1495,6 +1569,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1503,7 +1578,7 @@ class Lightning(object):
             rpc__pb2.PeerEventSubscription.SerializeToString,
             rpc__pb2.PeerEvent.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def GetInfo(request,
@@ -1511,6 +1586,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1519,7 +1595,7 @@ class Lightning(object):
             rpc__pb2.GetInfoRequest.SerializeToString,
             rpc__pb2.GetInfoResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def GetRecoveryInfo(request,
@@ -1527,6 +1603,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1535,7 +1612,7 @@ class Lightning(object):
             rpc__pb2.GetRecoveryInfoRequest.SerializeToString,
             rpc__pb2.GetRecoveryInfoResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def PendingChannels(request,
@@ -1543,6 +1620,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1551,7 +1629,7 @@ class Lightning(object):
             rpc__pb2.PendingChannelsRequest.SerializeToString,
             rpc__pb2.PendingChannelsResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def ListChannels(request,
@@ -1559,6 +1637,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1567,7 +1646,7 @@ class Lightning(object):
             rpc__pb2.ListChannelsRequest.SerializeToString,
             rpc__pb2.ListChannelsResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def SubscribeChannelEvents(request,
@@ -1575,6 +1654,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1583,7 +1663,7 @@ class Lightning(object):
             rpc__pb2.ChannelEventSubscription.SerializeToString,
             rpc__pb2.ChannelEventUpdate.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def ClosedChannels(request,
@@ -1591,6 +1671,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1599,7 +1680,7 @@ class Lightning(object):
             rpc__pb2.ClosedChannelsRequest.SerializeToString,
             rpc__pb2.ClosedChannelsResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def OpenChannelSync(request,
@@ -1607,6 +1688,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1615,7 +1697,7 @@ class Lightning(object):
             rpc__pb2.OpenChannelRequest.SerializeToString,
             rpc__pb2.ChannelPoint.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def OpenChannel(request,
@@ -1623,6 +1705,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1631,7 +1714,7 @@ class Lightning(object):
             rpc__pb2.OpenChannelRequest.SerializeToString,
             rpc__pb2.OpenStatusUpdate.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def FundingStateStep(request,
@@ -1639,6 +1722,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1647,7 +1731,7 @@ class Lightning(object):
             rpc__pb2.FundingTransitionMsg.SerializeToString,
             rpc__pb2.FundingStateStepResp.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def ChannelAcceptor(request_iterator,
@@ -1655,6 +1739,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1663,7 +1748,7 @@ class Lightning(object):
             rpc__pb2.ChannelAcceptResponse.SerializeToString,
             rpc__pb2.ChannelAcceptRequest.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def CloseChannel(request,
@@ -1671,6 +1756,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1679,7 +1765,7 @@ class Lightning(object):
             rpc__pb2.CloseChannelRequest.SerializeToString,
             rpc__pb2.CloseStatusUpdate.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def AbandonChannel(request,
@@ -1687,6 +1773,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1695,7 +1782,7 @@ class Lightning(object):
             rpc__pb2.AbandonChannelRequest.SerializeToString,
             rpc__pb2.AbandonChannelResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def SendPayment(request_iterator,
@@ -1703,6 +1790,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1711,7 +1799,7 @@ class Lightning(object):
             rpc__pb2.SendRequest.SerializeToString,
             rpc__pb2.SendResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def SendPaymentSync(request,
@@ -1719,6 +1807,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1727,7 +1816,7 @@ class Lightning(object):
             rpc__pb2.SendRequest.SerializeToString,
             rpc__pb2.SendResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def SendToRoute(request_iterator,
@@ -1735,6 +1824,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1743,7 +1833,7 @@ class Lightning(object):
             rpc__pb2.SendToRouteRequest.SerializeToString,
             rpc__pb2.SendResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def SendToRouteSync(request,
@@ -1751,6 +1841,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1759,7 +1850,7 @@ class Lightning(object):
             rpc__pb2.SendToRouteRequest.SerializeToString,
             rpc__pb2.SendResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def AddInvoice(request,
@@ -1767,6 +1858,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1775,7 +1867,7 @@ class Lightning(object):
             rpc__pb2.Invoice.SerializeToString,
             rpc__pb2.AddInvoiceResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def ListInvoices(request,
@@ -1783,6 +1875,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1791,7 +1884,7 @@ class Lightning(object):
             rpc__pb2.ListInvoiceRequest.SerializeToString,
             rpc__pb2.ListInvoiceResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def LookupInvoice(request,
@@ -1799,6 +1892,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1807,7 +1901,7 @@ class Lightning(object):
             rpc__pb2.PaymentHash.SerializeToString,
             rpc__pb2.Invoice.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def SubscribeInvoices(request,
@@ -1815,6 +1909,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1823,7 +1918,7 @@ class Lightning(object):
             rpc__pb2.InvoiceSubscription.SerializeToString,
             rpc__pb2.Invoice.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def DecodePayReq(request,
@@ -1831,6 +1926,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1839,7 +1935,7 @@ class Lightning(object):
             rpc__pb2.PayReqString.SerializeToString,
             rpc__pb2.PayReq.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def ListPayments(request,
@@ -1847,6 +1943,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1855,7 +1952,7 @@ class Lightning(object):
             rpc__pb2.ListPaymentsRequest.SerializeToString,
             rpc__pb2.ListPaymentsResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def DeleteAllPayments(request,
@@ -1863,6 +1960,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1871,7 +1969,7 @@ class Lightning(object):
             rpc__pb2.DeleteAllPaymentsRequest.SerializeToString,
             rpc__pb2.DeleteAllPaymentsResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def DescribeGraph(request,
@@ -1879,6 +1977,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1887,7 +1986,7 @@ class Lightning(object):
             rpc__pb2.ChannelGraphRequest.SerializeToString,
             rpc__pb2.ChannelGraph.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def GetNodeMetrics(request,
@@ -1895,6 +1994,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1903,7 +2003,7 @@ class Lightning(object):
             rpc__pb2.NodeMetricsRequest.SerializeToString,
             rpc__pb2.NodeMetricsResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def GetChanInfo(request,
@@ -1911,6 +2011,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1919,7 +2020,7 @@ class Lightning(object):
             rpc__pb2.ChanInfoRequest.SerializeToString,
             rpc__pb2.ChannelEdge.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def GetNodeInfo(request,
@@ -1927,6 +2028,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1935,7 +2037,7 @@ class Lightning(object):
             rpc__pb2.NodeInfoRequest.SerializeToString,
             rpc__pb2.NodeInfo.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def QueryRoutes(request,
@@ -1943,6 +2045,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1951,7 +2054,7 @@ class Lightning(object):
             rpc__pb2.QueryRoutesRequest.SerializeToString,
             rpc__pb2.QueryRoutesResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def GetNetworkInfo(request,
@@ -1959,6 +2062,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1967,7 +2071,7 @@ class Lightning(object):
             rpc__pb2.NetworkInfoRequest.SerializeToString,
             rpc__pb2.NetworkInfo.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def StopDaemon(request,
@@ -1975,6 +2079,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1983,7 +2088,7 @@ class Lightning(object):
             rpc__pb2.StopRequest.SerializeToString,
             rpc__pb2.StopResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def SubscribeChannelGraph(request,
@@ -1991,6 +2096,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -1999,7 +2105,7 @@ class Lightning(object):
             rpc__pb2.GraphTopologySubscription.SerializeToString,
             rpc__pb2.GraphTopologyUpdate.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def DebugLevel(request,
@@ -2007,6 +2113,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -2015,7 +2122,7 @@ class Lightning(object):
             rpc__pb2.DebugLevelRequest.SerializeToString,
             rpc__pb2.DebugLevelResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def FeeReport(request,
@@ -2023,6 +2130,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -2031,7 +2139,7 @@ class Lightning(object):
             rpc__pb2.FeeReportRequest.SerializeToString,
             rpc__pb2.FeeReportResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def UpdateChannelPolicy(request,
@@ -2039,6 +2147,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -2047,7 +2156,7 @@ class Lightning(object):
             rpc__pb2.PolicyUpdateRequest.SerializeToString,
             rpc__pb2.PolicyUpdateResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def ForwardingHistory(request,
@@ -2055,6 +2164,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -2063,7 +2173,7 @@ class Lightning(object):
             rpc__pb2.ForwardingHistoryRequest.SerializeToString,
             rpc__pb2.ForwardingHistoryResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def ExportChannelBackup(request,
@@ -2071,6 +2181,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -2079,7 +2190,7 @@ class Lightning(object):
             rpc__pb2.ExportChannelBackupRequest.SerializeToString,
             rpc__pb2.ChannelBackup.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def ExportAllChannelBackups(request,
@@ -2087,6 +2198,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -2095,7 +2207,7 @@ class Lightning(object):
             rpc__pb2.ChanBackupExportRequest.SerializeToString,
             rpc__pb2.ChanBackupSnapshot.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def VerifyChanBackup(request,
@@ -2103,6 +2215,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -2111,7 +2224,7 @@ class Lightning(object):
             rpc__pb2.ChanBackupSnapshot.SerializeToString,
             rpc__pb2.VerifyChanBackupResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def RestoreChannelBackups(request,
@@ -2119,6 +2232,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -2127,7 +2241,7 @@ class Lightning(object):
             rpc__pb2.RestoreChanBackupRequest.SerializeToString,
             rpc__pb2.RestoreBackupResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def SubscribeChannelBackups(request,
@@ -2135,6 +2249,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -2143,7 +2258,7 @@ class Lightning(object):
             rpc__pb2.ChannelBackupSubscription.SerializeToString,
             rpc__pb2.ChanBackupSnapshot.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def BakeMacaroon(request,
@@ -2151,6 +2266,7 @@ class Lightning(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -2159,4 +2275,55 @@ class Lightning(object):
             rpc__pb2.BakeMacaroonRequest.SerializeToString,
             rpc__pb2.BakeMacaroonResponse.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ListMacaroonIDs(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/lnrpc.Lightning/ListMacaroonIDs',
+            rpc__pb2.ListMacaroonIDsRequest.SerializeToString,
+            rpc__pb2.ListMacaroonIDsResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def DeleteMacaroonID(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/lnrpc.Lightning/DeleteMacaroonID',
+            rpc__pb2.DeleteMacaroonIDRequest.SerializeToString,
+            rpc__pb2.DeleteMacaroonIDResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ListPermissions(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/lnrpc.Lightning/ListPermissions',
+            rpc__pb2.ListPermissionsRequest.SerializeToString,
+            rpc__pb2.ListPermissionsResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
