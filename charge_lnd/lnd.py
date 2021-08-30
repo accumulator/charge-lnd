@@ -4,6 +4,7 @@ from os.path import expanduser
 import codecs
 import grpc
 import sys
+import re
 
 from .grpc_generated import rpc_pb2_grpc as lnrpc, rpc_pb2 as ln
 
@@ -115,6 +116,19 @@ class Lnd:
             request = ln.ListChannelsRequest()
             self.channels = self.stub.ListChannels(request).channels
         return self.channels
+
+    def min_version(self, major, minor, patch=0):
+        p = re.compile("(\d+)\.(\d+)\.(\d+).*")
+        m = p.match(self.get_info().version)
+        if m is None:
+            return False
+        if major > int(m.group(1)):
+            return False
+        if minor > int(m.group(2)):
+            return False
+        if patch > int(m.group(3)):
+            return False
+        return True
 
     @staticmethod
     def hex_string_to_bytes(hex_string):
