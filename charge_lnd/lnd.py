@@ -7,6 +7,7 @@ import sys
 import re
 
 from .grpc_generated import rpc_pb2_grpc as lnrpc, rpc_pb2 as ln
+from .grpc_generated import router_pb2_grpc as routerrpc, router_pb2 as router
 
 MESSAGE_SIZE_MB = 50 * 1024 * 1024
 
@@ -26,6 +27,7 @@ class Lnd:
         ]
         grpc_channel = grpc.secure_channel(server, combined_credentials, channel_options)
         self.stub = lnrpc.LightningStub(grpc_channel)
+        self.routerstub = routerrpc.RouterStub(grpc_channel)
         self.graph = None
         self.info = None
         self.channels = None
