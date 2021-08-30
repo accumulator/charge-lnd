@@ -132,6 +132,30 @@ class Lnd:
             return False
         return True
 
+    def update_chan_status(self, chanid, disable):
+        chan_info = self.get_chan_info(chanid)
+        if not chan_info:
+            return None
+        channel_point = ln.ChannelPoint(
+            funding_txid_str=chan_info.chan_point.split(':')[0],
+            output_index=int(chan_info.chan_point.split(':')[1])
+        )
+        my_policy = chan_info.node1_policy if chan_info.node1_pub == self.get_own_pubkey() else chan_info.node2_policy
+        # ugly code, retry with 'AUTO' if channel turns out not to be active.
+        # Alternative is to iterate or index the channel list, just to get active status
+        try:
+            action = 'DISABLE' if disable else 'ENABLE'
+            self.routerstub.UpdateChanStatus(router.UpdateChanStatusRequest(
+                chan_point=channel_point,
+                action=action
+                ))
+        except:
+            action = 'DISABLE' if disable else 'AUTO'
+            self.routerstub.UpdateChanStatus(router.UpdateChanStatusRequest(
+                chan_point=channel_point,
+                action=action
+                ))
+
     @staticmethod
     def hex_string_to_bytes(hex_string):
         decode_hex = codecs.getdecoder("hex_codec")
