@@ -51,15 +51,13 @@ def main():
         if not policy:
             continue
 
-        (new_base_fee_msat, new_fee_ppm, new_min_htlc, new_max_htlc, new_time_lock_delta) = policy.strategy.execute(channel)
+        (new_base_fee_msat, new_fee_ppm, new_min_htlc, new_max_htlc, new_time_lock_delta, disable) = policy.strategy.execute(channel)
 
         if channel.chan_id in lnd.feereport:
             (current_base_fee_msat, current_fee_ppm) = lnd.feereport[channel.chan_id]
 
-        htlc_or_tld_defined = new_min_htlc or new_max_htlc or new_time_lock_delta
-        if htlc_or_tld_defined or arguments.verbose:
-            chan_info = lnd.get_chan_info(channel.chan_id)
-            my_policy = chan_info.node1_policy if chan_info.node1_pub == my_pubkey else chan_info.node2_policy
+        chan_info = lnd.get_chan_info(channel.chan_id)
+        my_policy = chan_info.node1_policy if chan_info.node1_pub == my_pubkey else chan_info.node2_policy
 
         min_fee_ppm_delta = policy.getint('min_fee_ppm_delta',0)
 
@@ -71,7 +69,13 @@ def main():
         time_lock_delta_changed = new_time_lock_delta is not None and my_policy.time_lock_delta != new_time_lock_delta
         is_changed = fee_ppm_changed or base_fee_changed or min_htlc_changed or max_htlc_changed or time_lock_delta_changed
 
-        if is_changed or arguments.verbose:
+        chan_status_changed = False
+        if lnd.min_version(0,13) and channel.active and disable != my_policy.disabled:
+            if not arguments.dry_run:
+                lnd.update_chan_status(channel.chan_id, disable)
+            chan_status_changed = True
+
+        if is_changed or chan_status_changed or arguments.verbose:
             print (
                 fmt.col_lo(fmt.print_chanid(channel.chan_id).ljust(14)) +
                 fmt.print_node(lnd.get_node_info(channel.remote_pubkey))
@@ -80,9 +84,9 @@ def main():
         if is_changed and not arguments.dry_run:
             lnd.update_chan_policy(channel.chan_id, new_base_fee_msat, new_fee_ppm, new_min_htlc, new_max_htlc, new_time_lock_delta)
 
-        if is_changed or arguments.verbose:
+        if is_changed or chan_status_changed or arguments.verbose:
             print("  policy:          %s" % fmt.col_hi(policy.name) )
-            print("  strategy:        %s" % fmt.col_hi(policy.config.get('strategy')) )
+            print("  strategy:        %s" % fmt.col_hi(policy.get('strategy')) )
             if new_base_fee_msat is not None or arguments.verbose:
                 s = ''
                 if base_fee_changed:

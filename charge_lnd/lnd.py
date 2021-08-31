@@ -4,8 +4,10 @@ from os.path import expanduser
 import codecs
 import grpc
 import sys
+import re
 
 from .grpc_generated import rpc_pb2_grpc as lnrpc, rpc_pb2 as ln
+from .grpc_generated import router_pb2_grpc as routerrpc, router_pb2 as router
 
 MESSAGE_SIZE_MB = 50 * 1024 * 1024
 
@@ -25,6 +27,7 @@ class Lnd:
         ]
         grpc_channel = grpc.secure_channel(server, combined_credentials, channel_options)
         self.stub = lnrpc.LightningStub(grpc_channel)
+        self.routerstub = routerrpc.RouterStub(grpc_channel)
         self.graph = None
         self.info = None
         self.channels = None
@@ -115,6 +118,43 @@ class Lnd:
             request = ln.ListChannelsRequest()
             self.channels = self.stub.ListChannels(request).channels
         return self.channels
+
+    def min_version(self, major, minor, patch=0):
+        p = re.compile("(\d+)\.(\d+)\.(\d+).*")
+        m = p.match(self.get_info().version)
+        if m is None:
+            return False
+        if major > int(m.group(1)):
+            return False
+        if minor > int(m.group(2)):
+            return False
+        if patch > int(m.group(3)):
+            return False
+        return True
+
+    def update_chan_status(self, chanid, disable):
+        chan_info = self.get_chan_info(chanid)
+        if not chan_info:
+            return None
+        channel_point = ln.ChannelPoint(
+            funding_txid_str=chan_info.chan_point.split(':')[0],
+            output_index=int(chan_info.chan_point.split(':')[1])
+        )
+        my_policy = chan_info.node1_policy if chan_info.node1_pub == self.get_own_pubkey() else chan_info.node2_policy
+        # ugly code, retry with 'AUTO' if channel turns out not to be active.
+        # Alternative is to iterate or index the channel list, just to get active status
+        try:
+            action = 'DISABLE' if disable else 'ENABLE'
+            self.routerstub.UpdateChanStatus(router.UpdateChanStatusRequest(
+                chan_point=channel_point,
+                action=action
+                ))
+        except:
+            action = 'DISABLE' if disable else 'AUTO'
+            self.routerstub.UpdateChanStatus(router.UpdateChanStatusRequest(
+                chan_point=channel_point,
+                action=action
+                ))
 
     @staticmethod
     def hex_string_to_bytes(hex_string):
