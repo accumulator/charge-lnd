@@ -96,7 +96,7 @@ Done!
 
 1. login using SSH
 2. install charge-lnd docker container
-3. create folder ~/umbrel/apps/charge-lnd to hold the policy config file(s)
+3. create folder ~/apps/charge-lnd to hold the policy config file(s)
 4. create a policy config file
 5. create a cron entry to run charge-lnd once per hour
 
