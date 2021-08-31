@@ -151,6 +151,7 @@ Available strategies:
 |**cost** | calculate cost for opening channel, and set ppm to cover cost when channel depletes.|**base_fee_msat**<br>**cost_factor**|
 |**onchain_fee** | sets the fees to a % equivalent of a standard onchain payment (Requires --electrum-server to be specified.)| **onchain_fee_btc** BTC<br>within **onchain_fee_numblocks** blocks.<br>**base_fee_msat** is used if defined.|
 |**proportional** | sets fee ppm according to balancedness.|**base_fee_msat**<br>**min_fee_ppm**<br>**max_fee_ppm**|
+|**disable** | disables the channel in the outgoing direction. Channel will be re-enabled again if it matches another policy (except when that policy uses an 'ignore' strategy).||
 |**use_config** | process channel according to rules defined in another config file.|**config_file**|
 
 All strategies (except the ignore strategy) will apply the following properties if defined:
