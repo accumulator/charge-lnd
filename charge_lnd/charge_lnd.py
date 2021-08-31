@@ -70,7 +70,7 @@ def main():
         is_changed = fee_ppm_changed or base_fee_changed or min_htlc_changed or max_htlc_changed or time_lock_delta_changed
 
         chan_status_changed = False
-        if lnd.min_version(0,13) and channel.active and disable != my_policy.disabled:
+        if lnd.min_version(0,13) and channel.active and disable != my_policy.disabled and policy.get('strategy') != 'ignore':
             if not arguments.dry_run:
                 lnd.update_chan_status(channel.chan_id, disable)
             chan_status_changed = True
