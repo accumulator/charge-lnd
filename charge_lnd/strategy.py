@@ -37,6 +37,10 @@ class StrategyDelegate:
                 result = result + ( self.policy.getint('min_htlc_msat'),
                                     self.effective_max_htlc_msat(channel),
                                     self.policy.getint('time_lock_delta') )
+            # disabled = False by default
+            if len(result) == 5:
+                result = result + ( False, )
+
             return result
         except Exception as e:
             debug("Error executing strategy '%s'. (Error=%s)" % (strategy, str(e)) )
@@ -146,3 +150,11 @@ def strategy_use_config(channel, policy, **kwargs):
         policy.set('min_fee_ppm_delta', ext_policy.getint('min_fee_ppm_delta'))
 
     return r
+
+@strategy(name = 'disable')
+def strategy_disable(channel, policy, **kwargs):
+    lnd = kwargs['lnd']
+    if not lnd.min_version(0,13):
+        raise Exception("Cannot use strategy 'disable', lnd must be at least version 0.13.0")
+
+    return strategy_ignore(channel, policy) + ( True, )
