@@ -91,6 +91,28 @@ at the end of the file, add this
 Done!
 
 ## Umbrel
+[Full Guide by entrepenewer](https://community.getumbrel.com/t/guide-installing-charge-lnd-in-a-docker-to-automate-your-fee-policies/2187)
+
+1. login using SSH
+2. install charge-lnd docker container
+3. create folder ~/apps/charge-lnd to hold the policy config file(s)
+4. create a policy config file
+5. create a cron entry to run charge-lnd once per hour
+
+```
+crontab -e
+```
+
+at the end of the file, add this
+
+```
+0 * * * * docker run --rm --network=umbrel_main_network  -e GRPC_LOCATION=YOUR.LND.IP.ADDRESS:10009 -e LND_DIR=/data/.lnd -e CONFIG_LOCATION=/app/charge.config -v /home/umbrel/umbrel/lnd:/data/.lnd  -v /home/umbrel/umbrel/apps/charge-lnd:/app accumulator/charge-lnd:latest
+```
+
+.. and save the file.
+
+Done!
+
 [Full Guide by Plebnet - non docker](https://plebnet.wiki/wiki/Fees_And_Profitability#Installing_Charge-Lnd)
 1. login using SSH
 2. change directory to home ```cd ~```
@@ -114,24 +136,3 @@ save ```ctrl -x y``` exit ```enter```
 
 Done!
 
-[Full Guide by entrepenewer](https://community.getumbrel.com/t/guide-installing-charge-lnd-in-a-docker-to-automate-your-fee-policies/2187)
-
-1. login using SSH
-2. install charge-lnd docker container
-3. create folder ~/apps/charge-lnd to hold the policy config file(s)
-4. create a policy config file
-5. create a cron entry to run charge-lnd once per hour
-
-```
-crontab -e
-```
-
-at the end of the file, add this
-
-```
-0 * * * * docker run --rm --network=umbrel_main_network  -e GRPC_LOCATION=YOUR.LND.IP.ADDRESS:10009 -e LND_DIR=/data/.lnd -e CONFIG_LOCATION=/app/charge.config -v /home/umbrel/umbrel/lnd:/data/.lnd  -v /home/umbrel/umbrel/apps/charge-lnd:/app accumulator/charge-lnd:latest
-```
-
-.. and save the file.
-
-Done!
