@@ -141,7 +141,7 @@ class Lnd:
             output_index=int(chan_info.chan_point.split(':')[1])
         )
         my_policy = chan_info.node1_policy if chan_info.node1_pub == self.get_own_pubkey() else chan_info.node2_policy
-        # ugly code, retry with 'AUTO' if channel turns out not to be active.
+        # ugly code, retries with 'AUTO' if channel turns out not to be active.
         # Alternative is to iterate or index the channel list, just to get active status
         try:
             action = 'DISABLE' if disable else 'ENABLE'
