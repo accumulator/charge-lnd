@@ -87,6 +87,12 @@ def main():
         if is_changed or chan_status_changed or arguments.verbose:
             print("  policy:          %s" % fmt.col_hi(policy.name) )
             print("  strategy:        %s" % fmt.col_hi(policy.get('strategy')) )
+            if chan_status_changed or arguments.verbose:
+                s = 'disabled' if my_policy.disabled else 'enabled'
+                if chan_status_changed:
+                    s = s + ' ➜ '
+                    s = s + 'disabled' if disable else 'enabled'
+                print("  channel status:  %s" % fmt.col_hi(s))
             if new_base_fee_msat is not None or arguments.verbose:
                 s = ''
                 if base_fee_changed:
