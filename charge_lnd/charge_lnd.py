@@ -57,6 +57,9 @@ def main():
             (current_base_fee_msat, current_fee_ppm) = lnd.feereport[channel.chan_id]
 
         chan_info = lnd.get_chan_info(channel.chan_id)
+        if not chan_info:
+            print "could not lookup channel info for " + channel.chan_id + ", skipping"
+            continue
         my_policy = chan_info.node1_policy if chan_info.node1_pub == my_pubkey else chan_info.node2_policy
 
         min_fee_ppm_delta = policy.getint('min_fee_ppm_delta',0)
