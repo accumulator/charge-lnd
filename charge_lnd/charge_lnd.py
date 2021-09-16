@@ -58,7 +58,7 @@ def main():
 
         chan_info = lnd.get_chan_info(channel.chan_id)
         if not chan_info:
-            print ("could not lookup channel info for " + channel.chan_id + ", skipping")
+            print ("could not lookup channel info for " + fmt.print_chanid(channel.chan_id).ljust(14) + ", skipping")
             continue
         my_policy = chan_info.node1_policy if chan_info.node1_pub == my_pubkey else chan_info.node2_policy
 
