@@ -128,8 +128,8 @@ Currently available properties:
 | **chan.max_remote_balance** | match on channel remote balance|# of sats|
 | **chan.min_age** | match on channel age|# of blocks|
 | **chan.max_age** | match on channel age|# of blocks|
-| **chan.min_activity** | match on most recent forward event | # of seconds|
-| **chan.max_activity** | match on most recent forward event | # of seconds|
+| **chan.min_last_forward** | match on most recent forward event | # of seconds|
+| **chan.max_last_forward** | match on most recent forward event | # of seconds|
 | **chan.min_last_update** | match when time has passed since local channel policy last updated | # of seconds |
 | **chan.max_last_update** | match when time has passed since local channel policy last updated | # of seconds |
 | **chan.min_base_fee_msat** | match on channel peer policy|# of msats|
