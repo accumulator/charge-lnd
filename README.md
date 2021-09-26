@@ -128,6 +128,10 @@ Currently available properties:
 | **chan.max_remote_balance** | match on channel remote balance|# of sats|
 | **chan.min_age** | match on channel age|# of blocks|
 | **chan.max_age** | match on channel age|# of blocks|
+| **chan.min_activity** | match on most recent forward event | # of seconds|
+| **chan.max_activity** | match on most recent forward event | # of seconds|
+| **chan.min_last_update** | match when time has passed since local channel policy last updated | # of seconds |
+| **chan.max_last_update** | match when time has passed since local channel policy last updated | # of seconds |
 | **chan.min_base_fee_msat** | match on channel peer policy|# of msats|
 | **chan.max_base_fee_msat** | match on channel peer policy|# of msats|
 | **chan.min_fee_ppm** | match on channel peer policy|0..1000000 (parts per million)|
@@ -149,6 +153,7 @@ Available strategies:
 |**static** | sets fixed base fee and fee rate values.| **base_fee_msat**<br>**fee_ppm**|
 |**match_peer** | sets the same base fee and fee rate values as the peer|if **base_fee_msat** or **fee_ppm** are set the override the peer values|
 |**cost** | calculate cost for opening channel, and set ppm to cover cost when channel depletes.|**base_fee_msat**<br>**cost_factor**|
+|**adjust** | raise or lower the current fees based on a scale factor (e.x. 0.9 to lower fees 10% or 1.05 to raise 5%) | **base_fee_factor**<br>**fee_ppm_factor**|
 |**onchain_fee** | sets the fees to a % equivalent of a standard onchain payment (Requires --electrum-server to be specified.)| **onchain_fee_btc** BTC<br>within **onchain_fee_numblocks** blocks.<br>**base_fee_msat** is used if defined.|
 |**proportional** | sets fee ppm according to balancedness.|**base_fee_msat**<br>**min_fee_ppm**<br>**max_fee_ppm**|
 |**disable** | disables the channel in the outgoing direction. Channel will be re-enabled again if it matches another policy (except when that policy uses an 'ignore' strategy).||

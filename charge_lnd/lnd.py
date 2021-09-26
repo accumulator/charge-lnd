@@ -63,6 +63,22 @@ class Lnd:
             feedict[channel_fee.chan_id] = (channel_fee.base_fee_msat, channel_fee.fee_per_mil)
         return feedict
 
+    def get_forward_history(self, out_chanid, start_time, end_time):
+        out_chan_forwards = []
+        index_offset = 0
+        done = False
+        while not done:
+            forwards = self.stub.ForwardingHistory(ln.ForwardingHistoryRequest(start_time=start_time, end_time=end_time, index_offset=index_offset )) 
+            if forwards.forwarding_events:
+                for forward in forwards.forwarding_events:
+                    if forward.chan_id_out == out_chanid:
+                        out_chan_forwards.append(forward)
+                index_offset = forwards.last_offset_index
+            else:
+                done = True
+
+        return out_chan_forwards
+
     def get_node_info(self, nodepubkey):
         if not nodepubkey in self.node_info:
             self.node_info[nodepubkey] = self.stub.GetNodeInfo(ln.NodeInfoRequest(pub_key=nodepubkey))
@@ -77,6 +93,7 @@ class Lnd:
                 return None
         return self.chan_info[chanid]
 
+ 
     def update_chan_policy(self, chanid, base_fee_msat, fee_ppm, min_htlc_msat, max_htlc_msat, time_lock_delta):
         chan_info = self.get_chan_info(chanid)
         if not chan_info:

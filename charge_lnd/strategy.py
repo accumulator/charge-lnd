@@ -68,6 +68,14 @@ def strategy_ignore(channel, policy, **kwargs):
 def strategy_static(channel, policy, **kwargs):
     return (policy.getint('base_fee_msat'), policy.getint('fee_ppm'))
 
+@strategy(name = 'adjust')
+def strategy_adjust(channel, policy, **kwargs):
+    lnd = kwargs['lnd']
+    chan_info = lnd.get_chan_info(channel.chan_id)
+    my_pubkey = lnd.get_own_pubkey()
+    my_policy = chan_info.node1_policy if chan_info.node1_pub == my_pubkey else chan_info.node2_policy
+    return (round(my_policy.fee_base_msat * policy.getfloat('fee_ppm_factor', 1)), round(my_policy.fee_rate_milli_msat * policy.getfloat('fee_ppm_factor', 1)))
+
 @strategy(name = 'proportional')
 def strategy_proportional(channel, policy, **kwargs):
     if policy.getint('min_fee_ppm_delta',-1) < 0:

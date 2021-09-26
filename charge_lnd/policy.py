@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import sys
 import re
+import time
 from .strategy import StrategyDelegate
 from . import fmt
 
@@ -165,7 +166,9 @@ class Policies:
                     'min_remote_balance','max_remote_balance',
                     'min_base_fee_msat','max_base_fee_msat',
                     'min_fee_ppm','max_fee_ppm',
-                    'min_age','max_age'
+                    'min_age','max_age',
+                    'min_last_forward', 'max_last_forward',
+                    'min_last_update', 'max_last_update'
                     ]
         for key in config.keys():
             if key.split(".")[0] == 'chan' and key.split(".")[1] not in accepted:
@@ -211,7 +214,7 @@ class Policies:
         if not chan_info:
             return False
         my_pubkey = self.lnd.get_own_pubkey()
-        peernode_policy = chan_info.node1_policy if chan_info.node2_pub == my_pubkey else chan_info.node2_policy
+        my_policy, peernode_policy = (chan_info.node1_policy, chan_info.node2_policy) if chan_info.node2_pub == my_pubkey else (chan_info.node2_policy, chan_info.node1_policy)
 
         if 'chan.min_base_fee_msat' in config and not config.getint('chan.min_base_fee_msat') <= peernode_policy.fee_base_msat:
             return False
@@ -230,6 +233,24 @@ class Policies:
         if 'chan.min_age' in config and not config.getint('chan.min_age') <= age:
             return False
         if 'chan.max_age' in config and not config.getint('chan.max_age') >= age:
+            return False
+        
+        now = round(time.time())
+        secs_since_last_update = now - my_policy.last_update
+        min_last_forward = config.getint('chan.min_last_forward', 0)
+        max_last_forward = config.getint('chan.max_last_forward', 0)
+        lookback = now - max(min_last_forward, max_last_forward)
+        forwards = self.lnd.get_forward_history(channel.chan_id, lookback, now )
+        most_recent_forward = forwards[-1].timestamp if forwards else 0
+
+        if 'chan.min_last_forward' in config and not now - min_last_forward <= most_recent_forward:
+            return False
+        if 'chan.max_last_forward' in config and not now - max_last_forward >= most_recent_forward:
+            return False
+
+        if 'chan.min_last_update' in config and not config.getint('chan.min_last_update') <= secs_since_last_update:
+            return False
+        if 'chan.max_last_update' in config and not config.getint('chan.max_last_update') >= secs_since_last_update:
             return False
 
         return True
