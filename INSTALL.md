@@ -116,7 +116,7 @@ Done!
 [Full Guide by Plebnet - non docker](https://plebnet.wiki/wiki/Fees_And_Profitability#Installing_Charge-Lnd)
 1. login using SSH
 2. change directory to home ```cd ~```
-3. get latest from git ```git clone https://github.com/accumulator/charge-lnd</code>```
+3. get latest from git ```git clone https://github.com/accumulator/charge-lnd```
 4. change directory to charge-lnd ```cd charge-lnd```
 5. build with pip3 ```pip3 install -r requirements.txt .```
 6. test installaion ```~/.local/bin/charge-lnd --help```
