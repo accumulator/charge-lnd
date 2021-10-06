@@ -49,6 +49,11 @@ class StrategyDelegate:
     def effective_max_htlc_msat(self, channel):
         result = self.policy.getint('max_htlc_msat')
         ratio = self.policy.getfloat('max_htlc_msat_ratio')
+
+        if result == -1:
+        # Special case for setting max-htlc = local balance
+            result = round(channel.local_balance/10000)*10000000
+
         if ratio:
             ratio = max(0,min(1,ratio))
             channel_cap = channel.capacity
