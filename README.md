@@ -107,7 +107,7 @@ base_fee_msat = 1
 fee_ppm = 2
 ```
 
-More elaborate examples can be found in the [charge.config.example](charge.config.example) file.
+More elaborate examples can be found in the [examples](examples) folder.
 
 ## Properties
 

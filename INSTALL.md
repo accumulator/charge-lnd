@@ -91,7 +91,6 @@ at the end of the file, add this
 Done!
 
 ## Umbrel
-
 [Full Guide by entrepenewer](https://community.getumbrel.com/t/guide-installing-charge-lnd-in-a-docker-to-automate-your-fee-policies/2187)
 
 1. login using SSH
@@ -113,3 +112,27 @@ at the end of the file, add this
 .. and save the file.
 
 Done!
+
+[Full Guide by Plebnet - non docker](https://plebnet.wiki/wiki/Fees_And_Profitability#Installing_Charge-Lnd)
+1. login using SSH
+2. change directory to home ```cd ~```
+3. get latest from git ```git clone https://github.com/accumulator/charge-lnd```
+4. change directory to charge-lnd ```cd charge-lnd```
+5. build with pip3 ```pip3 install -r requirements.txt .```
+6. test installaion ```~/.local/bin/charge-lnd --help```
+7. configure config file
+8. do a dry run ```~/.local/bin/charge-lnd --lnddir ~/umbrel/lnd -c ~/charge-lnd/myconfig --dry-run```
+9. create crontab entry
+
+```
+crontab -e
+```
+
+at the end of the file, add the following line
+```
+42 * * * * /home/umbrel/.local/bin/charge-lnd --lnddir /home/umbrel/umbrel/lnd -c /home/umbrel/charge-lnd/myconfig > /tmp/charge-lnd.log 2>&1; date >> /tmp/charge-lnd.log
+```
+save ```ctrl -x y``` exit ```enter```
+
+Done!
+
