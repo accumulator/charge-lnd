@@ -52,8 +52,9 @@ class StrategyDelegate:
 
         if result == -1:
         # Special case for setting max-htlc = local balance
-            result = int(channel.local_balance/10000)*10000000
-            channel_cap=result
+            result = max(0,int((channel.local_balance-channel.remote_constraints.chan_reserve_sat)/10000)*10000000)
+            # Channel Cap is in Sat divide by 1000
+            channel_cap=result/1000
         else:
             channel_cap = channel.capacity
             channel_cap = channel_cap - channel.remote_constraints.chan_reserve_sat
