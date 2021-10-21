@@ -5,6 +5,7 @@ import codecs
 import grpc
 import sys
 import re
+import time
 
 from .grpc_generated import rpc_pb2_grpc as lnrpc, rpc_pb2 as ln
 from .grpc_generated import router_pb2_grpc as routerrpc, router_pb2 as router
@@ -33,6 +34,7 @@ class Lnd:
         self.channels = None
         self.node_info = {}
         self.chan_info = {}
+        self.fwdhistory = {}
         self.valid = True
         try:
             self.feereport = self.get_feereport()
@@ -62,6 +64,63 @@ class Lnd:
         for channel_fee in feereport.channel_fees:
             feedict[channel_fee.chan_id] = (channel_fee.base_fee_msat, channel_fee.fee_per_mil)
         return feedict
+
+    # query the forwarding history for a channel covering the last # of seconds
+    def get_forward_history(self, chanid, seconds):
+        # cache all history to avoid stomping on lnd
+        last_time = self.fwdhistory['last'] if 'last' in self.fwdhistory else int(time.time())
+
+        start_time = int(time.time()) - seconds
+        leeway = 5 # don't call lnd on each second boundary
+        if start_time < last_time - leeway:
+            # retrieve (remaining) for the queried period
+            index_offset = 0
+            done = False
+            thishistory = {}
+            while not done:
+                forwards = self.stub.ForwardingHistory(ln.ForwardingHistoryRequest(
+                    start_time=start_time, end_time=last_time, index_offset=index_offset))
+                if forwards.forwarding_events:
+                    for forward in forwards.forwarding_events:
+                        if not forward.chan_id_out in thishistory:
+                            thishistory[forward.chan_id_out] = { 'in': [], 'out': []}
+                        if not forward.chan_id_in in thishistory:
+                            thishistory[forward.chan_id_in] = { 'in': [], 'out': []}
+                        # most recent last
+                        thishistory[forward.chan_id_out]['out'].append(forward)
+                        thishistory[forward.chan_id_in]['in'].append(forward)
+                    index_offset = forwards.last_offset_index
+                else:
+                    done = True
+
+            # add queried to existing cache and keep time order
+            for i in thishistory.keys():
+                if not i in self.fwdhistory:
+                    self.fwdhistory[i] = { 'in': [], 'out': []}
+                self.fwdhistory[i]['in'] = thishistory[i]['in'] + self.fwdhistory[i]['in']
+                self.fwdhistory[i]['out'] = thishistory[i]['out'] + self.fwdhistory[i]['out']
+
+            self.fwdhistory['last'] = start_time
+
+        chan_data = self.fwdhistory[chanid] if chanid in self.fwdhistory else { 'in': [], 'out': []}
+        result = { 'htlc_in': 0, 'htlc_out': 0, 'sat_in': 0, 'sat_out': 0, 'last_in': 0, 'last_out': 0}
+
+        for fwd in reversed(chan_data['in']):
+            if fwd.timestamp < start_time:
+                break
+            result['htlc_in'] = result['htlc_in'] + 1
+            result['sat_in'] = result['sat_in'] + fwd.amt_in
+            result['last_in'] = fwd.timestamp
+
+        for fwd in reversed(chan_data['out']):
+            if fwd.timestamp < start_time:
+                break
+            result['htlc_out'] = result['htlc_out'] + 1
+            result['sat_out'] = result['sat_out'] + fwd.amt_out
+            result['last_out'] = fwd.timestamp
+
+        return result
+
 
     def get_node_info(self, nodepubkey):
         if not nodepubkey in self.node_info:
