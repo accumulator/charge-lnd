@@ -162,11 +162,11 @@ Available strategies:
 |Strategy|Description|Parameters|
 |:--|:--|:--|
 |**ignore** | ignores the channel||
-|**static** | sets fixed base fee and fee rate values.| **base_fee_msat**<br>**fee_ppm**|
+|**static** | sets fixed base fee and fee rate values.| **fee_ppm**|
 |**match_peer** | sets the same base fee and fee rate values as the peer|if **base_fee_msat** or **fee_ppm** are set the override the peer values|
-|**cost** | calculate cost for opening channel, and set ppm to cover cost when channel depletes.|**base_fee_msat**<br>**cost_factor**|
-|**onchain_fee** | sets the fees to a % equivalent of a standard onchain payment (Requires --electrum-server to be specified.)| **onchain_fee_btc** BTC<br>within **onchain_fee_numblocks** blocks.<br>**base_fee_msat** is used if defined.|
-|**proportional** | sets fee ppm according to balancedness.|**base_fee_msat**<br>**min_fee_ppm**<br>**max_fee_ppm**|
+|**cost** | calculate cost for opening channel, and set ppm to cover cost when channel depletes.|**cost_factor**|
+|**onchain_fee** | sets the fees to a % equivalent of a standard onchain payment (Requires --electrum-server to be specified.)| **onchain_fee_btc** BTC<br>within **onchain_fee_numblocks** blocks.|
+|**proportional** | sets fee ppm according to balancedness.|**min_fee_ppm**<br>**max_fee_ppm**|
 |**disable** | disables the channel in the outgoing direction. Channel will be re-enabled again if it matches another policy (except when that policy uses an 'ignore' strategy).||
 |**use_config** | process channel according to rules defined in another config file.|**config_file**|
 
@@ -174,6 +174,7 @@ All strategies (except the ignore strategy) will apply the following properties 
 
 |Property|Description|Values|
 |:--|:--|:--|
+| **base_fee_msat** | Base fee | # msat |
 | **min_htlc_msat** | Minimum size (in msat) of HTLC to allow | # msat |
 | **max_htlc_msat** | Maximum size (in msat) of HTLC to allow | # msat |
 | **max_htlc_msat_ratio** | Maximum size of HTLC to allow as a fraction of total channel capacity | 0..1 |
