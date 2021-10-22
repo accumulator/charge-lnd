@@ -169,7 +169,9 @@ class Policies:
                     'min_age','max_age',
                     'activity_period',
                     'min_htlcs_in', 'max_htlcs_in',
+                    'min_htlcs_out', 'max_htlcs_out',
                     'min_sats_in', 'max_sats_in'
+                    'min_sats_out', 'max_sats_out'
                     ]
         for key in config.keys():
             if key.split(".")[0] == 'chan' and key.split(".")[1] not in accepted:
