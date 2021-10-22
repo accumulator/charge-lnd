@@ -118,21 +118,37 @@ Currently available properties:
 | **chan.id** |match on channel IDs - comma separated list of channel IDs and/or file references|<channel ID\|file url>[, <channel ID\|file url>..]|
 | **chan.initiator** | match on initiator status, true if we are initiator|true\|false|
 | **chan.private** | match on channel private flag|true\|false|
-| **chan.max_ratio** | match on channel ratio|0..1|
-| **chan.min_ratio** | match on channel ratio|0..1|
 | **chan.min_capacity** | match on channel capacity|# of sats|
 | **chan.max_capacity** | match on channel capacity|# of sats|
+| **chan.min_age** | match on channel age|# of blocks|
+| **chan.max_age** | match on channel age|# of blocks|
+|||
+|BALANCE||
+| **chan.max_ratio** | match on channel ratio|0..1|
+| **chan.min_ratio** | match on channel ratio|0..1|
 | **chan.min_local_balance** | match on channel local balance|# of sats|
 | **chan.max_local_balance** | match on channel local balance|# of sats|
 | **chan.min_remote_balance** | match on channel remote balance|# of sats|
 | **chan.max_remote_balance** | match on channel remote balance|# of sats|
-| **chan.min_age** | match on channel age|# of blocks|
-| **chan.max_age** | match on channel age|# of blocks|
+|||
+|PEER||
 | **chan.min_base_fee_msat** | match on channel peer policy|# of msats|
 | **chan.max_base_fee_msat** | match on channel peer policy|# of msats|
 | **chan.min_fee_ppm** | match on channel peer policy|0..1000000 (parts per million)|
 | **chan.max_fee_ppm** | match on channel peer policy|0..1000000 (parts per million)|
 |||
+|ACTIVITY||
+| **chan.activity_period** | define a time period for forwards|#s seconds or #m minutes or #h hours or #d days|
+| **chan.min_htlcs_in** | match on minimal amount of HTLCs arriving in channel during activity period|# of htlcs|
+| **chan.max_htlcs_in** | match on maximum amount of HTLCs arriving in channel during activity period|# of htlcs|
+| **chan.min_htlcs_out** | match on minimal amount of HTLCs departing from channel during activity period|# of htlcs|
+| **chan.max_htlcs_out** | match on maximum amount of HTLCs departing from channel during activity period|# of htlcs|
+| **chan.min_sats_in** | match on minimal amount of sats arriving in channel during activity period|# of sats|
+| **chan.max_sats_in** | match on maximum amount of sats arriving in channel during activity period|# of sats|
+| **chan.min_sats_out** | match on minimal amount of sats departing from channel during activity period|# of sats|
+| **chan.max_sats_out** | match on maximum amount of sats departing from channel during activity period|# of sats|
+|||
+|NODE||
 | **node.id** | match on node pubkeys - comma separated list of node pubkeys and/or file references|<node pubkey\|file url>[, <node pubkey\|file url>..]|
 | **node.min_channels** | match on number of channels the peer node has|# of channels|
 | **node.max_channels** | match on number of channels the peer node has|# of channels|

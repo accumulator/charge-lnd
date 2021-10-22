@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import sys
 import re
+import time
 from .strategy import StrategyDelegate
 from . import fmt
 
@@ -165,7 +166,10 @@ class Policies:
                     'min_remote_balance','max_remote_balance',
                     'min_base_fee_msat','max_base_fee_msat',
                     'min_fee_ppm','max_fee_ppm',
-                    'min_age','max_age'
+                    'min_age','max_age',
+                    'activity_period',
+                    'min_htlcs_in', 'max_htlcs_in',
+                    'min_sats_in', 'max_sats_in'
                     ]
         for key in config.keys():
             if key.split(".")[0] == 'chan' and key.split(".")[1] not in accepted:
@@ -232,4 +236,46 @@ class Policies:
         if 'chan.max_age' in config and not config.getint('chan.max_age') >= age:
             return False
 
+        if 'chan.activity_period' in config:
+            seconds = self.parse_activity_period(config.get('chan.activity_period'))
+            fwds = self.lnd.get_forward_history(channel.chan_id, seconds)
+
+            if 'chan.max_htlcs_in' in config:
+                if fwds['htlc_in'] > config.getint('chan.max_htlcs_in'):
+                    return False
+            if 'chan.min_htlcs_in' in config:
+                if fwds['htlc_in'] < config.getint('chan.min_htlcs_in'):
+                    return False
+            if 'chan.max_htlcs_out' in config:
+                if fwds['htlc_out'] > config.getint('chan.max_htlcs_out'):
+                    return False
+            if 'chan.min_htlcs_out' in config:
+                if fwds['htlc_out'] < config.getint('chan.min_htlcs_out'):
+                    return False
+
+            if 'chan.max_sats_in' in config:
+                if fwds['sat_in'] > config.getint('chan.max_sats_in'):
+                    return False
+            if 'chan.min_sats_in' in config:
+                if fwds['sat_in'] < config.getint('chan.min_sats_in'):
+                    return False
+            if 'chan.max_sats_out' in config:
+                if fwds['sat_out'] > config.getint('chan.max_sats_out'):
+                    return False
+            if 'chan.min_sats_out' in config:
+                if fwds['sat_out'] < config.getint('chan.min_sats_out'):
+                    return False
+
         return True
+
+    # simple minutes/hours/days format, e.g. '5m', '3h'
+    def parse_activity_period(self, period):
+        seconds = 0
+        try:
+            seconds = int(period)
+        except ValueError:
+            mulmap = { 's': 1, 'm': 60, 'h': 60*60, 'd': 60*60*24 }
+            multiplier = mulmap[period[-1]]
+            seconds = int(period[:-1]) * multiplier
+
+        return int(seconds)
