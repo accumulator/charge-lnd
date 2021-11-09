@@ -119,7 +119,7 @@ Done!
 3. get latest from git ```git clone https://github.com/accumulator/charge-lnd```
 4. change directory to charge-lnd ```cd charge-lnd```
 5. build with pip3 ```pip3 install -r requirements.txt .```
-6. test installaion ```~/.local/bin/charge-lnd --help```
+6. test installation ```~/.local/bin/charge-lnd --help```
 7. configure config file
 8. do a dry run ```~/.local/bin/charge-lnd --lnddir ~/umbrel/lnd -c ~/charge-lnd/myconfig --dry-run```
 9. create crontab entry
@@ -136,3 +136,30 @@ save ```ctrl -x y``` exit ```enter```
 
 Done!
 
+# MyNode
+
+[Full Guide by Wiredancer](https://mynode.community/viewtopic.php?f=5&t=8)
+
+1. login using SSH ```ssh admin@mynode.local```
+2. switch to user 'bitcoin' ```sudo su - bitcoin```
+3. get latest from git ```git clone https://github.com/accumulator/charge-lnd```
+4. change directory to charge-lnd ```cd charge-lnd```
+5. build with pip3 ```pip install -r requirements.txt .```
+6. create macaroon for charge-lnd
+7. create config file ```nano ~/charge-lnd/charge.config```
+8. do a dry run ```~/.local/bin/charge-lnd --lnddir -c ~/charge-lnd/charge.config --dry-run```
+9. create crontab entry
+
+```
+crontab -e
+```
+
+at the end of the file, add the following line
+
+```
+18 */2 * * * /home/bitcoin/.local/bin/charge-lnd -c /home/bitcoin/charge-lnd/charge.config
+```
+
+save ```ctrl -x y``` exit ```enter```
+
+Done!
