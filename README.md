@@ -168,8 +168,8 @@ All strategies (except the ignore strategy) will apply the following properties 
 ## Contributing
 
 Contributions are highly welcome!
-Feel free to submit issues and pull requests on https://github.com/accumulator/charge-lnd/
+Feel free to submit issues and pull requests on https://github.com/bhaagbosedk/charge-lnd/
 
 Please also consider opening a channel with my node, or sending tips via keysend:
 
-* accumulator : `0266ad254117f16f16c3457e081e6207e91c5e414477a208cf4d9c633322799038@89.99.0.115:9735`
+* g-spot-21_69_420 : `03c5528c628681aa17ab9e117aa3ee6f06c750dfb17df758ecabcd68f1567ad8c1`
