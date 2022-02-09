@@ -91,6 +91,11 @@ at the end of the file, add this
 Done!
 
 ## Umbrel
+
+On Umbrel you can simply install the [**Lightning Shell**](https://github.com/ibz/lightning-shell) app from the app store. This comes with `charge-lnd` installed and configured to connect to Umbrel's LND. It just works.
+
+However, in order to use it from `cron` you would still have to edit Umbrel's `crontab` as described below. See [this discussion](https://github.com/ibz/lightning-shell/issues/6) for more details.
+
 [Full Guide by entrepenewer](https://community.getumbrel.com/t/guide-installing-charge-lnd-in-a-docker-to-automate-your-fee-policies/2187)
 
 1. login using SSH
