@@ -242,6 +242,11 @@ class Policies:
             seconds = self.parse_activity_period(config.get('chan.activity_period'))
             fwds = self.lnd.get_forward_history(channel.chan_id, seconds)
 
+            # don't trigger if channel age less than activity_period
+            age_seconds = age * 10*60 # channel age estimate in seconds from age in blocks
+            if age_seconds < seconds:
+                return False
+
             if 'chan.max_htlcs_in' in config:
                 if fwds['htlc_in'] > config.getint('chan.max_htlcs_in'):
                     return False
