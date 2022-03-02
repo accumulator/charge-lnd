@@ -16,7 +16,7 @@ $ lncli bakemacaroon offchain:read offchain:write onchain:read info:read --save_
 
 By default charge-lnd connects to `localhost:10009`, using the macaroon file in `~/.lnd/data/chain/bitcoin/mainnet/charge-lnd.macaroon`. If `charge-lnd.macaroon` is not found, `admin.macaroon` will be tried.
 
-If you need to change these defaults, please have a look at the optional arguments `--grpc` and `--lnddir`.
+If you need to change these defaults, please have a look at the usage parameters.
 
 ## Install from source
 
