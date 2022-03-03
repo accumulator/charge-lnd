@@ -17,10 +17,6 @@ usage: charge-lnd [-h] [--lnddir LNDDIR] [--grpc GRPC] [--electrum-server ELECTR
 optional arguments:
   -h, --help            show this help message and exit
   --lnddir LNDDIR       (default ~/.lnd) lnd directory
-  --tlscertpath TLS_CERT_PATH
-                        (default [lnddir]/tls.cert) path to lnd TLS certificate
-  --macaroonpath MACAROON_PATH
-                        (default [lnddir]/data/chain/bitcoin/mainnet/charge-lnd.macaroon) path to lnd auth macaroons
   --grpc GRPC           (default localhost:10009) lnd gRPC endpoint
   --electrum-server ELECTRUM_SERVER
                         (optional, no default) electrum server host:port . Needed for

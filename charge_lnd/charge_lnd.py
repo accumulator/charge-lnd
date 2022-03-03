@@ -36,7 +36,7 @@ def main():
     # few systems are not utf-8, force so we don't bomb out
     sys.stdout.reconfigure(encoding='utf-8')
 
-    lnd = Lnd(arguments.lnddir)
+    lnd = Lnd(arguments.lnddir, arguments.grpc)
     if not lnd.valid:
         debug("Could not connect to gRPC endpoint")
         return False
@@ -132,12 +132,6 @@ def get_argument_parser():
                         default="~/.lnd",
                         dest="lnddir",
                         help="(default ~/.lnd) lnd directory")
-    parser.add_argument("--tlscertpath",
-                        dest="tls_cert_path",
-                        help="(default [lnddir]/tls.cert) path to lnd TLS certificate")
-    parser.add_argument("--macaroonpath",
-                        dest="macaroon_path",
-                        help="(default [lnddir]/data/chain/bitcoin/mainnet/charge-lnd.macaroon) path to lnd auth macaroon")
     parser.add_argument("--grpc",
                         default="localhost:10009",
                         dest="grpc",
