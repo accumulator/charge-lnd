@@ -104,6 +104,13 @@ However, in order to use it from `cron` you would still have to edit Umbrel's `c
 4. create a policy config file
 5. create a cron entry to run charge-lnd once per hour
 
+You'll need the internal Docker IP Address of your node, to find that:
+Run this command:
+
+`cat ~/umbrel/.env | grep LND_IP`
+
+Which will give you the IP you need to put in `YOUR.LND.ADDRESS` below.
+
 ```
 crontab -e
 ```
