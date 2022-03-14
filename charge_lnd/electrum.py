@@ -4,6 +4,7 @@ import aiorpcx
 class Electrum:
     host = None
     port = None
+    ssl = False
     # cache
     estimates = {}
 
@@ -13,10 +14,12 @@ class Electrum:
             split = server.split(':')
             Electrum.host = split[0]
             Electrum.port = int(split[1])
+            if len(split) > 2:
+                Electrum.ssl = split[2] == 's'
 
     @staticmethod
     async def _request_fee_estimate(numblocks):
-        async with aiorpcx.connect_rs(Electrum.host, Electrum.port) as session:
+        async with aiorpcx.connect_rs(Electrum.host, Electrum.port, ssl=Electrum.ssl) as session:
             result = await session.send_request('blockchain.estimatefee', [numblocks])
             # convert from btc/kbyte
             sat_per_byte = int(result * (100_000_000/1000))

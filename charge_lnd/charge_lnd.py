@@ -144,7 +144,7 @@ def get_argument_parser():
                         help="(default localhost:10009) lnd gRPC endpoint")
     parser.add_argument("--electrum-server",
                         dest="electrum_server",
-                        help="(optional, no default) electrum server host:port . Needed for onchain_fee.")
+                        help="(optional, no default) electrum server host:port[:s]. Needed for onchain_fee. Append ':s' for SSL connection")
     parser.add_argument("--dry-run",
                         dest="dry_run",
                         action="store_true",
