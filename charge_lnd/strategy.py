@@ -44,7 +44,7 @@ class StrategyDelegate:
             return result
         except Exception as e:
             debug("Error executing strategy '%s'. (Error=%s)" % (strategy, str(e)) )
-            return strategy_ignore(channel, self.policy)
+            return strategy_ignore(channel, self.policy) + (False,)
 
     def effective_max_htlc_msat(self, channel):
         result = self.policy.getint('max_htlc_msat')
