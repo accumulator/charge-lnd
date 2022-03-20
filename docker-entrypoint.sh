@@ -6,15 +6,15 @@ then
   exec /usr/local/bin/charge-lnd \
     --grpc "${GRPC_LOCATION}" \
     --lnddir "${LND_DIR}" \
-    --tlscertpath "${TLS_CERT_PATH}"
+    --tlscert "${TLS_CERT_PATH}" \
     -c "${CONFIG_LOCATION}" \
     "$@"
 else
   exec /usr/local/bin/charge-lnd \
     --grpc "${GRPC_LOCATION}" \
     --lnddir "${LND_DIR}" \
-    --tlscertpath "${TLS_CERT_PATH}"
-    --macaroonpath "${MACAROON_PATH}"
+    --tlscert "${TLS_CERT_PATH}" \
+    --macaroon "${MACAROON_PATH}" \
     -c "${CONFIG_LOCATION}" \
     "$@"
 fi
