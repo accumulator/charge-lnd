@@ -36,6 +36,7 @@ class Lnd:
         self.chan_info = {}
         self.fwdhistory = {}
         self.valid = True
+        self.peer_channels = {}
         try:
             self.feereport = self.get_feereport()
         except grpc._channel._InactiveRpcError:
@@ -180,6 +181,15 @@ class Lnd:
             request = ln.ListChannelsRequest()
             self.channels = self.stub.ListChannels(request).channels
         return self.channels
+
+    # Get all channels shared with a node
+    def get_shared_channels(self, peerid):
+        # See example: https://github.com/lightningnetwork/lnd/issues/3930#issuecomment-596041700
+        byte_peerid=bytes.fromhex(peerid)
+        if peerid not in self.peer_channels:
+            request = ln.ListChannelsRequest(peer=byte_peerid)
+            self.peer_channels[peerid] = self.stub.ListChannels(request).channels
+        return self.peer_channels[peerid]
 
     def min_version(self, major, minor, patch=0):
         p = re.compile("(\d+)\.(\d+)\.(\d+).*")
