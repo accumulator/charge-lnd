@@ -76,7 +76,28 @@ def strategy_proportional(channel, policy, **kwargs):
     ppm_max = policy.getint('max_fee_ppm')
     if ppm_min is None or ppm_max is None:
         raise Exception('proportional strategy requires min_fee_ppm and max_fee_ppm properties')
-    ratio = channel.local_balance/(channel.local_balance + channel.remote_balance)
+
+    if policy.getbool('sum_peer_chans', False):
+        lnd = kwargs['lnd'];  shared_chans=lnd.get_shared_channels(channel.remote_pubkey)
+        local_balance = 0; remote_balance = 0
+        for c in (shared_chans):
+            # Include balance of all active channels with peer
+            if c.active:
+                local_balance += c.local_balance
+                remote_balance += c.remote_balance
+        total_balance = local_balance + remote_balance
+        if total_balance == 0:
+            # Sum inactive channels because the node is likely offline with no active channels.
+            # When they come back online their fees won't be changed.
+            for c in (shared_chans):
+                if not c.active:
+                    local_balance += c.local_balance
+                    remote_balance += c.remote_balance
+        total_balance = local_balance + remote_balance
+        ratio = local_balance/total_balance
+    else:
+        ratio = channel.local_balance/(channel.local_balance + channel.remote_balance)
+
     ppm = int(ppm_min + (1.0 - ratio) * (ppm_max - ppm_min))
     # clamp to 0..inf
     ppm = max(ppm,0)
