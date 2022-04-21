@@ -44,7 +44,7 @@ class Lnd:
 
     @staticmethod
     def get_credentials(lnd_dir, tls_cert_path, macaroon_path):
-        tls_certificate = open(tls_cert_path or lnd_dir + '/tls.cert', 'rb').read()
+        tls_certificate = open(tls_cert_path if tls_cert_path else lnd_dir + '/tls.cert', 'rb').read()
         ssl_credentials = grpc.ssl_channel_credentials(tls_certificate)
         if macaroon_path:
             macaroon = codecs.encode(open(macaroon_path, 'rb').read(), 'hex')
