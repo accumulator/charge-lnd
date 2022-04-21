@@ -10,11 +10,11 @@ def debug(message):
 
 def read_nodelist(url):
     with open(url.replace("file://",""),'r') as idfile:
-        raw_ids = idfile.read().splitlines()
+        raw_ids = idfile.read().replace(',','\n').splitlines()
     node_list = []
     for raw_id in raw_ids:
-        raw_id = raw_id.split('#')[0]
-        match = re.match("^([0-9a-z]{66})", raw_id)
+        raw_id = raw_id.split('#')[0].strip()
+        match = re.match("^([0-9a-z]{66})$", raw_id)
         if match:
             node_list.append(match.group(0))
         else:
@@ -25,10 +25,10 @@ def read_nodelist(url):
 
 def read_chanlist(url):
     with open(url.replace("file://",""),'r') as idfile:
-        raw_ids = idfile.read().splitlines()
+        raw_ids = idfile.read().replace(',','\n').splitlines()
     chan_list = []
     for raw_id in raw_ids:
-        raw_id = raw_id.split('#')[0]
+        raw_id = raw_id.split('#')[0].strip()
         try:
             chan_id = fmt.parse_channel_id(raw_id)
             chan_list.append(chan_id)
