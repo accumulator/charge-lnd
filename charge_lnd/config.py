@@ -13,7 +13,10 @@ class Config:
         self.default = None
         self.policies = []
 
-        self.config = configparser.ConfigParser(converters={'list': lambda x: [i.strip() for i in x.split(',')]})
+        self.config = configparser.ConfigParser(
+            converters={'list': lambda x: [i.strip() for i in x.split(',')]},
+            interpolation=configparser.ExtendedInterpolation()
+            )
 
         with open(config_file, "r") as f:
             self.config.read_file(f)
