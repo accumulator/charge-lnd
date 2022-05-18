@@ -127,10 +127,18 @@ class Policies:
         return matches_policy
 
     def match_by_node(self, channel, config):
+        multiple_chans_props = ['min_shared_channels_active','max_shared_channels_active',
+                                'min_shared_channels_inactive','max_shared_channels_inactive',
+                                'min_shared_capacity_active','max_shared_capacity_active',
+                                'min_shared_capacity_inactive','max_shared_capacity_inactive',
+                                'min_shared_ratio_active', 'max_shared_ratio_active',
+                                'min_shared_ratio_inactive', 'max_shared_ratio_inactive',
+                                'min_shared_ratio', 'max_shared_ratio']
         accepted = ['id',
                     'min_channels','max_channels',
                     'min_capacity','max_capacity'
-                    ]
+                    ] + multiple_chans_props
+
         for key in config.keys():
             if key.split(".")[0] == 'node' and key.split(".")[1] not in accepted:
                 raise Exception("Unknown property '%s'" % key)
@@ -158,6 +166,80 @@ class Policies:
             return False
         if 'node.max_capacity' in config and not config.getint('node.max_capacity') >= node_info.total_capacity:
             return False
+
+        # Consider multiple channels per node policies
+        if any(map(lambda n: "node." + n in config, multiple_chans_props)):
+
+            shared_chans=self.lnd.get_shared_channels(channel.remote_pubkey)
+
+            local_active_balance = remote_active_balance = active_total = 0
+            local_inactive_balance = remote_inactive_balance = inactive_total = 0
+            channels_active = channels_inactive = 0
+
+            for chan in (shared_chans):
+                if chan.active:
+                    local_active_balance += chan.local_balance
+                    remote_active_balance += chan.remote_balance
+                    channels_active += 1
+                else:
+                    local_inactive_balance += chan.local_balance
+                    remote_inactive_balance += chan.remote_balance
+                    channels_inactive += 1
+
+            active_total = local_active_balance + remote_active_balance
+            inactive_total = local_inactive_balance + remote_inactive_balance
+            all_total = active_total + inactive_total
+
+            ratio_all = (local_active_balance + local_inactive_balance) / all_total
+
+            # Cannot calculate the active ratio if the active total is 0
+            if ('node.max_shared_ratio_active' in config \
+                or 'node.min_shared_ratio_active' in config):
+                if active_total <= 0:
+                    return False
+
+                ratio_active = local_active_balance / active_total
+
+                if (lambda s: s in config and not config.getfloat(s) >= ratio_active) \
+                   ('node.max_shared_ratio_active'): return False
+                if (lambda s: s in config and not config.getfloat(s) <= ratio_active) \
+                   ('node.min_shared_ratio_active'): return False
+
+            if ('node.max_shared_ratio_inactive' in config \
+                or 'node.min_shared_ratio_inactive' in config):
+                # Cannot calculate the inactive ratio if the inactive total is 0
+                if inactive_total <= 0:
+                    return False
+
+                ratio_inactive = local_inactive_balance / inactive_total
+
+                if (lambda s: s in config and not config.getfloat(s) >= ratio_inactive) \
+                   ('node.max_shared_ratio_inactive'): return False
+                if (lambda s: s in config and not config.getfloat(s) <= ratio_inactive) \
+                   ('node.min_shared_ratio_inactive'): return False
+
+            if (lambda s: s in config and not config.getfloat(s) >= ratio_all) \
+                ('node.max_shared_ratio'): return False
+            if (lambda s: s in config and not config.getfloat(s) <= ratio_all) \
+                ('node.min_shared_ratio'): return False
+
+            if (lambda s: s in config and not config.getint(s) >= channels_active) \
+                ('node.max_shared_channels_active'): return False
+            if (lambda s: s in config and not config.getint(s) <= channels_active) \
+                ('node.min_shared_channels_active'): return False
+            if (lambda s: s in config and not config.getint(s) >= channels_inactive) \
+                ('node.max_shared_channels_inactive'): return False
+            if (lambda s: s in config and not config.getint(s) <= channels_inactive) \
+                ('node.min_shared_channels_inactive'): return False
+
+            if (lambda s: s in config and not config.getint(s) >= active_total) \
+                ('node.max_shared_capacity_active'): return False
+            if (lambda s: s in config and not config.getint(s) <= active_total) \
+                ('node.min_shared_capacity_active'): return False
+            if (lambda s: s in config and not config.getint(s) >= inactive_total) \
+                ('node.max_shared_capacity_inactive'): return False
+            if (lambda s: s in config and not config.getint(s) <= inactive_total) \
+                ('node.min_shared_capacity_inactive'): return False
 
         return True
 
