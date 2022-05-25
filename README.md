@@ -140,6 +140,7 @@ Currently available properties:
 | **chan.max_base_fee_msat** | match on channel peer policy|# of msats|
 | **chan.min_fee_ppm** | match on channel peer policy|0..1000000 (parts per million)|
 | **chan.max_fee_ppm** | match on channel peer policy|0..1000000 (parts per million)|
+| **chan.disabled** | match on channel disabled by peer|true\|false|
 |||
 |ACTIVITY||
 | **chan.activity_period** | define a time period for forwards|#s seconds or #m minutes or #h hours or #d days|

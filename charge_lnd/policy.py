@@ -174,7 +174,8 @@ class Policies:
                     'min_htlcs_in', 'max_htlcs_in',
                     'min_htlcs_out', 'max_htlcs_out',
                     'min_sats_in', 'max_sats_in',
-                    'min_sats_out', 'max_sats_out'
+                    'min_sats_out', 'max_sats_out',
+                    'disabled'
                     ]
         for key in config.keys():
             if key.split(".")[0] == 'chan' and key.split(".")[1] not in accepted:
@@ -229,6 +230,8 @@ class Policies:
         if 'chan.min_fee_ppm' in config and not config.getint('chan.min_fee_ppm') <= peernode_policy.fee_rate_milli_msat:
             return False
         if 'chan.max_fee_ppm' in config and not config.getint('chan.max_fee_ppm') >= peernode_policy.fee_rate_milli_msat:
+            return False
+        if 'chan.disabled' in config and not config.getbool('chan.disabled') == peernode.disabled:
             return False
 
         info = self.lnd.get_info()
