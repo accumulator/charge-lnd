@@ -157,8 +157,22 @@ Currently available properties:
 | **node.id** | match on node pubkeys - comma separated list of node pubkeys and/or file references|<node pubkey\|file url>[, <node pubkey\|file url>..]|
 | **node.min_channels** | match on number of channels the peer node has|# of channels|
 | **node.max_channels** | match on number of channels the peer node has|# of channels|
+| **node.min_shared_channels_active** | match on number of active channels the peer node has with us|# of channels|
+| **node.max_shared_channels_active** | match on number of active channels the peer node has with us|# of channels|
+| **node.min_shared_channels_inactive** | match on number of inactive channels the peer node has with us|# of channels|
+| **node.max_shared_channels_inactive** | match on number of inactive channels the peer node has with us|# of channels|
 | **node.min_capacity** | match on node total capacity|# of sats|
 | **node.max_capacity** | match on node total capacity|# of sats|
+| **node.min_shared_capacity_active** | match on node active shared capacity with us|# of sats|
+| **node.max_shared_capacity_active** | match on node active shared capacity with us|# of sats|
+| **node.min_shared_capacity_inactive** | match on node inactive shared capacity with us|# of sats|
+| **node.max_shared_capacity_inactive** | match on node inactive shared capacity with us|# of sats|
+| **node.max_shared_ratio** | match on channels ratio with us|0..1|
+| **node.min_shared_ratio** | match on channels ratio with us |0..1|
+| **node.max_shared_ratio_active** | match on active channels ratio with us|0..1|
+| **node.min_shared_ratio_active** | match on active channels ratio with us |0..1|
+| **node.max_shared_ratio_inactive** | match on inactive channels ratio with us|0..1|
+| **node.min_shared_ratio_inactive** | match on inactive channels ratio with us|0..1|
 
 File references should contain 1 item per line
 ### Strategies
