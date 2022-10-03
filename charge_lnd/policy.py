@@ -257,6 +257,9 @@ class Policies:
                     'min_htlcs_out', 'max_htlcs_out',
                     'min_sats_in', 'max_sats_in',
                     'min_sats_out', 'max_sats_out',
+                    'activity_period_exact',
+                    'max_htlcs_ratio', 'min_htlcs_ratio',
+                    'max_sats_ratio', 'min_sats_ratio',
                     'disabled'
                     ]
         for key in config.keys():
@@ -313,7 +316,7 @@ class Policies:
             return False
         if 'chan.max_fee_ppm' in config and not config.getint('chan.max_fee_ppm') >= peernode_policy.fee_rate_milli_msat:
             return False
-        if 'chan.disabled' in config and not config.getbool('chan.disabled') == peernode.disabled:
+        if 'chan.disabled' in config and not config.getbool('chan.disabled') == peernode_policy.disabled:
             return False
 
         info = self.lnd.get_info()
@@ -330,10 +333,11 @@ class Policies:
             seconds = self.parse_activity_period(config.get('chan.activity_period'))
             fwds = self.lnd.get_forward_history(channel.chan_id, seconds)
 
-            # don't trigger if channel age less than activity_period
             age_seconds = age * 10*60 # channel age estimate in seconds from age in blocks
-            if age_seconds < seconds:
-                return False
+            if not ('chan.activity_period_exact' in config and not config.getboolean('chan.activity_period_exact')):
+                # don't trigger if channel age less than activity_period
+                if age_seconds < seconds:
+                    return False
 
             if 'chan.max_htlcs_in' in config:
                 if fwds['htlc_in'] > config.getint('chan.max_htlcs_in'):
@@ -360,6 +364,24 @@ class Policies:
             if 'chan.min_sats_out' in config:
                 if fwds['sat_out'] < config.getint('chan.min_sats_out'):
                     return False
+
+            htlcs_ratio = 0.5
+            htlcs_total = fwds['htlc_in'] + fwds['htlc_out']
+            if htlcs_total > 0:
+                htlcs_ratio = fwds['htlc_in']/htlcs_total
+            if 'chan.max_htlcs_ratio' in config and not config.getfloat('chan.max_htlcs_ratio') >= htlcs_ratio:
+                return False
+            if 'chan.min_htlcs_ratio' in config and not config.getfloat('chan.min_htlcs_ratio') <= htlcs_ratio:
+                return False
+
+            sats_ratio = 0.5
+            sats_total = fwds['sat_in'] + fwds['sat_out']
+            if sats_total > 0:
+                sats_ratio = fwds['sat_in']/sats_total
+            if 'chan.max_sats_ratio' in config and not config.getfloat('chan.max_sats_ratio') >= sats_ratio:
+                return False
+            if 'chan.min_sats_ratio' in config and not config.getfloat('chan.min_sats_ratio') <= sats_ratio:
+                return False
 
         return True
 
