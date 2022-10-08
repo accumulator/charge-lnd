@@ -367,6 +367,8 @@ class Policies:
 
             htlcs_ratio = 0.5
             htlcs_total = fwds['htlc_in'] + fwds['htlc_out']
+            if htlcs_total == 0:
+                return False
             if htlcs_total > 0:
                 htlcs_ratio = fwds['htlc_in']/htlcs_total
             if 'chan.max_htlcs_ratio' in config and not config.getfloat('chan.max_htlcs_ratio') >= htlcs_ratio:
@@ -376,6 +378,8 @@ class Policies:
 
             sats_ratio = 0.5
             sats_total = fwds['sat_in'] + fwds['sat_out']
+            if sats_total == 0:
+                return False
             if sats_total > 0:
                 sats_ratio = fwds['sat_in']/sats_total
             if 'chan.max_sats_ratio' in config and not config.getfloat('chan.max_sats_ratio') >= sats_ratio:
