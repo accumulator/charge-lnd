@@ -144,6 +144,7 @@ Currently available properties:
 |||
 |ACTIVITY||
 | **chan.activity_period** | define a time period for forwards|#s seconds or #m minutes or #h hours or #d days|
+| **chan.activity_period_ignore_channel_age** | match on channel age less than activity_period |true\|false|
 | **chan.min_htlcs_in** | match on minimal amount of HTLCs arriving in channel during activity period|# of htlcs|
 | **chan.max_htlcs_in** | match on maximum amount of HTLCs arriving in channel during activity period|# of htlcs|
 | **chan.min_htlcs_out** | match on minimal amount of HTLCs departing from channel during activity period|# of htlcs|
@@ -152,6 +153,10 @@ Currently available properties:
 | **chan.max_sats_in** | match on maximum amount of sats arriving in channel during activity period|# of sats|
 | **chan.min_sats_out** | match on minimal amount of sats departing from channel during activity period|# of sats|
 | **chan.max_sats_out** | match on maximum amount of sats departing from channel during activity period|# of sats|
+| **chan.min_htlcs_ratio** | match on amount of HTLCs ratio arriving in channel during activity period|0..1|
+| **chan.max_htlcs_ratio** | match on amount of HTLCs ratio arriving in channel during activity period|0..1|
+| **chan.min_sats_ratio** | match on amount of sats ratio arriving in channel during activity period|0..1|
+| **chan.max_sats_ratio** | match on amount of sats ratio arriving in channel during activity period|0..1|
 |||
 |NODE||
 | **node.id** | match on node pubkeys - comma separated list of node pubkeys and/or file references|<node pubkey\|file url>[, <node pubkey\|file url>..]|
