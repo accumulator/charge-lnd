@@ -313,7 +313,7 @@ class Policies:
             return False
         if 'chan.max_fee_ppm' in config and not config.getint('chan.max_fee_ppm') >= peernode_policy.fee_rate_milli_msat:
             return False
-        if 'chan.disabled' in config and not config.getbool('chan.disabled') == peernode.disabled:
+        if 'chan.disabled' in config and not config.getbool('chan.disabled') == peernode_policy.disabled:
             return False
 
         info = self.lnd.get_info()
