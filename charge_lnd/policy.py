@@ -366,20 +366,18 @@ class Policies:
                     return False
 
             htlcs_total = fwds['htlc_in'] + fwds['htlc_out']
-            if htlcs_total > 0:
-                htlcs_ratio = fwds['htlc_in'] / htlcs_total
-                if 'chan.max_htlcs_ratio' in config and not config.getfloat('chan.max_htlcs_ratio') >= htlcs_ratio:
-                    return False
-                if 'chan.min_htlcs_ratio' in config and not config.getfloat('chan.min_htlcs_ratio') <= htlcs_ratio:
-                    return False
+            htlcs_ratio = fwds['htlc_in'] / htlcs_total if htlcs_total else float('nan')
+            if 'chan.max_htlcs_ratio' in config and not config.getfloat('chan.max_htlcs_ratio') >= htlcs_ratio:
+                return False
+            if 'chan.min_htlcs_ratio' in config and not config.getfloat('chan.min_htlcs_ratio') <= htlcs_ratio:
+                return False
 
             sats_total = fwds['sat_in'] + fwds['sat_out']
-            if sats_total > 0:
-                sats_ratio = fwds['sat_in'] / sats_total
-                if 'chan.max_sats_ratio' in config and not config.getfloat('chan.max_sats_ratio') >= sats_ratio:
-                    return False
-                if 'chan.min_sats_ratio' in config and not config.getfloat('chan.min_sats_ratio') <= sats_ratio:
-                    return False
+            sats_ratio = fwds['sat_in'] / sats_total if sats_total else float('nan')
+            if 'chan.max_sats_ratio' in config and not config.getfloat('chan.max_sats_ratio') >= sats_ratio:
+                return False
+            if 'chan.min_sats_ratio' in config and not config.getfloat('chan.min_sats_ratio') <= sats_ratio:
+                return False
 
         return True
 
