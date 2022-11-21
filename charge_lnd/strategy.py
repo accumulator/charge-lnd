@@ -64,6 +64,10 @@ class StrategyDelegate:
 def strategy_ignore(channel, policy, **kwargs):
     return (None, None, None, None, None)
 
+@strategy(name = 'ignore_fees')
+def strategy_ignore_fees(channel, policy, **kwargs):
+    return (None, None)
+
 @strategy(name = 'static')
 def strategy_static(channel, policy, **kwargs):
     return (policy.getint('base_fee_msat'), policy.getint('fee_ppm'))
