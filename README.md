@@ -185,7 +185,8 @@ Available strategies:
 
 |Strategy|Description|Parameters|
 |:--|:--|:--|
-|**ignore** | ignores the channel||
+|**ignore** | ignores the channel completely||
+|**ignore_fees** | don't make any fee changes, only update htlc size limits and time_lock_delta||
 |**static** | sets fixed base fee and fee rate values.| **fee_ppm**|
 |**match_peer** | sets the same base fee and fee rate values as the peer|if **base_fee_msat** or **fee_ppm** are set the override the peer values|
 |**cost** | calculate cost for opening channel, and set ppm to cover cost when channel depletes.|**cost_factor**|
