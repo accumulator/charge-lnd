@@ -75,15 +75,17 @@ def strategy_static(channel, policy, **kwargs):
 @strategy(name = 'proportional')
 def strategy_proportional(channel, policy, **kwargs):
     if policy.getint('min_fee_ppm_delta',-1) < 0:
-        policy.set('min_fee_ppm_delta', 10) # set delta to 5 if not defined
+        policy.set('min_fee_ppm_delta', 10) # set delta to 10 if not defined
     ppm_min = policy.getint('min_fee_ppm')
     ppm_max = policy.getint('max_fee_ppm')
     if ppm_min is None or ppm_max is None:
         raise Exception('proportional strategy requires min_fee_ppm and max_fee_ppm properties')
 
     if policy.getbool('sum_peer_chans', False):
-        lnd = kwargs['lnd'];  shared_chans=lnd.get_shared_channels(channel.remote_pubkey)
-        local_balance = 0; remote_balance = 0
+        lnd = kwargs['lnd']
+        shared_chans=lnd.get_shared_channels(channel.remote_pubkey)
+        local_balance = 0
+        remote_balance = 0
         for c in (shared_chans):
             # Include balance of all active channels with peer
             if c.active:
@@ -141,7 +143,7 @@ def strategy_onchain_fee(channel, policy, **kwargs):
         raise Exception("No electrum server specified, cannot use strategy 'onchain_fee'")
 
     if policy.getint('min_fee_ppm_delta',-1) < 0:
-        policy.set('min_fee_ppm_delta', 10) # set delta to 5 if not defined
+        policy.set('min_fee_ppm_delta', 10) # set delta to 10 if not defined
 
     numblocks = policy.getint('onchain_fee_numblocks', 6)
     sat_per_byte = Electrum.get_fee_estimate(numblocks)
