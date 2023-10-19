@@ -75,8 +75,8 @@ def main():
         if not chan_info:
             print(
                 "could not lookup channel info for "
-                + fmt.print_chanid(channel.chan_id).ljust(14)
-                + ", skipping"
+                f"{fmt.print_chanid(channel.chan_id).ljust(14)}"
+                ", skipping"
             )
             continue
         my_policy = (
@@ -127,8 +127,8 @@ def main():
 
         if is_changed or chan_status_changed or arguments.verbose:
             print(
-                fmt.col_lo(fmt.print_chanid(channel.chan_id).ljust(14))
-                + fmt.print_node(lnd.get_node_info(channel.remote_pubkey))
+                f"{fmt.col_lo(fmt.print_chanid(channel.chan_id).ljust(14))}"
+                f"{fmt.print_node(lnd.get_node_info(channel.remote_pubkey))}"
             )
 
         if is_changed and not arguments.dry_run:
@@ -142,48 +142,40 @@ def main():
             )
 
         if is_changed or chan_status_changed or arguments.verbose:
-            print("  policy:          %s" % fmt.col_hi(policy.name))
-            print("  strategy:        %s" % fmt.col_hi(policy.get("strategy")))
+            print(f"  policy:          {fmt.col_hi(policy.name)}")
+            print(f'  strategy:        {fmt.col_hi(policy.get("strategy"))}')
             if chan_status_changed or arguments.verbose:
                 s = "disabled" if my_policy.disabled else "enabled"
                 if chan_status_changed:
-                    s = s + " ➜ "
-                    s = s + "disabled" if disable else "enabled"
-                print("  channel status:  %s" % fmt.col_hi(s))
+                    s = f'{s} ➜ {"disabled" if disable else "enabled"}'
+                print(f"  channel status:  {fmt.col_hi(s)}")
             if new_base_fee_msat is not None or arguments.verbose:
                 s = ""
                 if base_fee_changed:
-                    s = " ➜ " + fmt.col_hi(new_base_fee_msat)
-                print(
-                    "  base_fee_msat:   %s%s" % (fmt.col_hi(current_base_fee_msat), s)
-                )
+                    s = f" ➜ {fmt.col_hi(new_base_fee_msat)}"
+                print(f"  base_fee_msat:   {fmt.col_hi(current_base_fee_msat)}{s}")
             if new_fee_ppm is not None or arguments.verbose:
                 s = ""
                 if fee_ppm_changed:
-                    s = " ➜ " + fmt.col_hi(new_fee_ppm)
+                    s = f" ➜ {fmt.col_hi(new_fee_ppm)}"
                     if min_fee_ppm_delta > abs(new_fee_ppm - current_fee_ppm):
-                        s = s + " (min_fee_ppm_delta=%d)" % min_fee_ppm_delta
-                print("  fee_ppm:         %s%s" % (fmt.col_hi(current_fee_ppm), s))
+                        s = f"{s} (min_fee_ppm_delta={min_fee_ppm_delta})"
+                print(f"  fee_ppm:         {fmt.col_hi(current_fee_ppm)}{s}")
             if new_min_htlc is not None or arguments.verbose:
                 s = ""
                 if min_htlc_changed:
-                    s = " ➜ " + fmt.col_hi(new_min_htlc)
-                print("  min_htlc_msat:   %s%s" % (fmt.col_hi(my_policy.min_htlc), s))
+                    s = f" ➜ {fmt.col_hi(new_min_htlc)}"
+                print(f"  min_htlc_msat:   {fmt.col_hi(my_policy.min_htlc)}{s}")
             if new_max_htlc is not None or arguments.verbose:
                 s = ""
                 if max_htlc_changed:
-                    s = " ➜ " + fmt.col_hi(new_max_htlc)
-                print(
-                    "  max_htlc_msat:   %s%s" % (fmt.col_hi(my_policy.max_htlc_msat), s)
-                )
+                    s = f" ➜ {fmt.col_hi(new_max_htlc)}"
+                print(f"  max_htlc_msat:   {fmt.col_hi(my_policy.max_htlc_msat)}{s}")
             if new_time_lock_delta is not None or arguments.verbose:
                 s = ""
                 if time_lock_delta_changed:
-                    s = " ➜ " + fmt.col_hi(new_time_lock_delta)
-                print(
-                    "  time_lock_delta: %s%s"
-                    % (fmt.col_hi(my_policy.time_lock_delta), s)
-                )
+                    s = f" ➜ {fmt.col_hi(new_time_lock_delta)}"
+                print(f"  time_lock_delta: {fmt.col_hi(my_policy.time_lock_delta)}{s}")
 
     return True
 
