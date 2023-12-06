@@ -24,16 +24,21 @@ Python and PIP should be made available on the system before installing from sou
 The project and its dependencies can be installed by running (don't forget the last dot):
 
 ```
-$ pip install -r requirements.txt .
-```
-
-On some systems using Python 3, use pip3 instead:
-
-```
 $ pip3 install -r requirements.txt .
 ```
 
 When running the install as `root`, `charge-lnd` will be installed to `/usr/local/bin`. Otherwise `charge-lnd` will be installed to `$HOME/.local/bin`.
+
+On newer systems [PEP-668](https://peps.python.org/pep-0668/) is enforced, you need to install to a virtual environment:
+
+```
+$ export CHARGE_LND_ENV=/opt/charge-lnd
+$ python3 -m venv ${CHARGE_LND_ENV}
+$ ${CHARGE_LND_ENV}/bin/pip3 install -r requirements.txt .
+```
+
+`charge-lnd` will be installed to `${CHARGE_LND_ENV}/bin`
+
 
 ## Install using docker image
 
