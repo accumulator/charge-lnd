@@ -35,16 +35,16 @@ def print_chanid(chan_id):
     return "%sx%sx%s" % lnd_to_cl_scid(chan_id)
 
 def col_lo(s):
-    return str(colored(s,'white', attrs=['dark']))
+    return str(colored(str(s),'white', attrs=['dark']))
 
 def col_hi(s):
-    return str(colored(s,'white', attrs=['bold']))
+    return str(colored(str(s),'white', attrs=['bold']))
 
 def col_name(s):
-    return str(colored(s,'blue', attrs=['bold']))
+    return str(colored(str(s),'blue', attrs=['bold']))
 
 def col_err(s):
-    return str(colored(s,'red', attrs=['bold']))
+    return str(colored(str(s),'red', attrs=['bold']))
 
 def col_val(s):
-    return str(colored(s,'yellow', attrs=['bold']))
+    return str(colored(str(s),'yellow', attrs=['bold']))
