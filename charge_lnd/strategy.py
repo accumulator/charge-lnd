@@ -5,6 +5,10 @@ import functools
 from . import fmt
 from .config import Config
 from .electrum import Electrum
+from pprint import pprint
+import pickle
+
+edges_cache = None
 
 def debug(message):
     sys.stderr.write(message + "\n")
@@ -133,6 +137,130 @@ def strategy_match_peer(channel, policy, **kwargs):
     peernode_policy = chan_info.node1_policy if chan_info.node2_pub == my_pubkey else chan_info.node2_policy
     return (policy.getint('base_fee_msat', peernode_policy.fee_base_msat),
             policy.getint('fee_ppm', peernode_policy.fee_rate_milli_msat))
+
+@strategy(name = 'match_peer_inbound_weighted_average')
+def strategy_match_peer_inbound_weighted_average(channel, policy, **kwargs):
+    lnd = kwargs['lnd']
+    chan_info = lnd.get_chan_info(channel.chan_id)
+    my_pubkey = lnd.get_own_pubkey()
+
+    peer_node_id = chan_info.node1_pub if chan_info.node2_pub == my_pubkey else chan_info.node2_pub
+
+    #print("peer_node_id: %s" % (peer_node_id) )
+
+    #peer_node_info = lnd.get_node_info(peer_node_id)
+    #peer_inbound_weighted_average = 0
+
+    global edges_cache
+
+    if not edges_cache:
+        #print('getting fresh copy of edges')
+    #     edges = lnd.get_edges()
+        with open('edges.pkl', 'rb') as file:
+        # Use pickle.load to deserialize and read the object from the file
+            edges = pickle.load(file)
+
+    #     all_edges = []
+    #     for edge in edges:
+    #         my_edge = {
+    #             "node1_pub": edge.node1_pub,
+    #             "node2_pub": edge.node2_pub,
+    #             'capacity': edge.capacity,
+    #             "node1_policy": {
+    #                'fee_rate_milli_msat': edge.node1_policy.fee_rate_milli_msat
+    #             },
+    #             "node2_policy": {
+    #                'fee_rate_milli_msat': edge.node2_policy.fee_rate_milli_msat
+    #             }
+    #         }
+    #         #pprint(my_edge)
+    #         all_edges.append(my_edge)
+
+    #     #json_string = json.dumps(all_edges, indent=4)
+    #     #pprint(json_string)
+
+    #     #pprint(edges)
+    #     with open('edges.pkl', 'wb') as file:
+    #         # Use pickle.dump to serialize and write the object to the file
+    #         pickle.dump(all_edges, file)
+        edges_cache = edges
+    else:
+        #print('using cache of edges')
+        edges = edges_cache
+
+
+
+    # edges = [{
+    #     'channel_id': 901732575861473280,
+    #     'chan_point': "c3fbe954405ba1570f17f72b77bbf14afe4e95b7fb766560b3ceb4db78fe4f27:0",
+    #     'last_update': 1701938542,
+    #     'node1_pub': "034f3f792988c43f41c65a839acdfa48647204bb99aca7de426f7c80b0dcf7a4a6",
+    #     'node2_pub': "03ceeaec6cb017d1ea8ad04a5dfb3facb24a28399d24624ecce8f319973de361d9",
+    #     'capacity': 4002000,
+    #     'node1_policy': {
+    #         'time_lock_delta': 80,
+    #         'min_htlc': 1000,
+    #         'fee_base_msat': 1000,
+    #         'fee_rate_milli_msat': 1,
+    #         'max_htlc_msat': 3961980000,
+    #         'last_update': 1701938542,
+    #     },
+    #     'node2_policy': {
+    #         'time_lock_delta': 80,
+    #         'min_htlc': 1000,
+    #         'fee_base_msat': 1000,
+    #         'fee_rate_milli_msat': 450,
+    #         'max_htlc_msat': 3961980000,
+    #         'last_update': 1701938541,
+    #     }
+    # }]
+
+    # Try to find all the channels for the peer.
+
+    peer_inbound = []
+
+    total_peer_capacity = 0
+    weighted_average_inbound_fee = 0
+
+    for edge in edges:
+        if edge['node1_pub'] == peer_node_id:
+            # We will take node2_policy because we want inbound policy.
+            inbound = {
+                'capacity': edge['capacity'],
+                'fee_rate_milli_msat': edge['node2_policy']['fee_rate_milli_msat']
+            }
+            total_peer_capacity += edge['capacity']
+            peer_inbound.append(inbound)
+        elif edge['node2_pub'] == peer_node_id:
+            inbound = {
+                'capacity': edge['capacity'],
+                'fee_rate_milli_msat': edge['node1_policy']['fee_rate_milli_msat']
+            }
+            peer_inbound.append(inbound)
+            total_peer_capacity += edge['capacity']
+
+    # Calculate the weighted average inbound fee by multiplying each fee by
+    # the adjusted ratio and taking the sum.
+
+    max_usable_ppm = policy.getint('inbound_skip_fee_rate_above_ppm')
+
+    for inbound in peer_inbound:
+        if inbound['fee_rate_milli_msat'] >= max_usable_ppm:
+            # ignore fee rate values over 10,000 in our calculation
+            continue
+        #pprint(inbound)
+        weighted_average_inbound_fee += int((inbound['capacity']/total_peer_capacity)*inbound['fee_rate_milli_msat'])
+
+    #print('fee rate', (weighted_average_inbound_fee))
+
+    premium_pct = policy.getint('inbound_weighted_average_fee_rate_premium_percent')
+
+    if premium_pct:
+        premium = int(weighted_average_inbound_fee * (premium_pct/100))
+        #print('adding premium: %i', (premium))
+        weighted_average_inbound_fee += premium
+
+    return (policy.getint('fee_ppm'), weighted_average_inbound_fee)
 
 @strategy(name = 'cost')
 def strategy_cost(channel, policy, **kwargs):

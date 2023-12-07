@@ -12,6 +12,7 @@ from .policy import Policies
 from .config import Config
 from .electrum import Electrum
 import charge_lnd.fmt as fmt
+from pprint import pprint
 
 def debug(message):
     sys.stderr.write(message + "\n")
@@ -123,7 +124,8 @@ def main():
                 if time_lock_delta_changed:
                     s = ' ➜ ' + fmt.col_hi(new_time_lock_delta)
                 print("  time_lock_delta: %s%s" % (fmt.col_hi(my_policy.time_lock_delta), s) )
-
+        #debugging
+        #return True
     return True
 
 def get_argument_parser():

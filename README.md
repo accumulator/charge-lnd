@@ -189,6 +189,7 @@ Available strategies:
 |**ignore_fees** | don't make any fee changes, only update htlc size limits and time_lock_delta||
 |**static** | sets fixed base fee and fee rate values.| **fee_ppm**|
 |**match_peer** | sets the same base fee and fee rate values as the peer|if **base_fee_msat** or **fee_ppm** are set the override the peer values|
+|**match_peer_inbound_weighted_average** | sets the fee rate to the peer's inbound weighted average fee rate||
 |**cost** | calculate cost for opening channel, and set ppm to cover cost when channel depletes.|**cost_factor**|
 |**onchain_fee** | sets the fees to a % equivalent of a standard onchain payment (Requires --electrum-server to be specified.)| **onchain_fee_btc** BTC<br>within **onchain_fee_numblocks** blocks.|
 |**proportional** | sets fee ppm according to balancedness.|**min_fee_ppm**<br>**max_fee_ppm**<br>**sum_peer_chans** consider all channels with peer for balance calculations|
