@@ -200,7 +200,7 @@ Strategy for match peer inbound weighted average will apply the following proper
 
 |Property|Description|Values|
 |:--|:--|:--|
-| **inbound_skip_fee_rate_above_ppm** | Inbound rate of peer to ignore exceeds this value | ppm |
+| **inbound_weighted_average_fee_rate_cutoff_ppm** | Inbound rate of peer to ignore exceeds this value | ppm |
 | **inbound_weighted_average_fee_rate_premium_percent** | Premium added to the final peer inbound weighted average | percent |
 
 

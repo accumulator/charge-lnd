@@ -23,7 +23,7 @@ def strategy(_func=None,*,name):
 
 def calculate_slices(max_value, current_value, num_slices):
     # Calculate the size of each slice
-    slice_size = max_value // num_slices
+    slice_size = max_value // max(num_slices, 10)
 
     # Find the slice number containing the current_value
     current_slice = min(current_value // slice_size, num_slices - 1)
@@ -175,16 +175,23 @@ def strategy_match_peer_inbound_weighted_average(channel, policy, **kwargs):
 
     for edge in edges:
         if edge['node1_pub'] == peer_node_id:
-            # We will take node2_policy because we want inbound policy, not outbound
+            if edge['node2_pub'] == my_pubkey:
+                # ignore this edge if it's shared between our node and peer
+                continue
             inbound = {
                 'capacity': edge['capacity'],
+                # We will take node2_policy because we want inbound policy, not outbound
                 'fee_rate_milli_msat': edge['node2_policy']['fee_rate_milli_msat']
             }
             total_peer_capacity += edge['capacity']
             peer_inbound.append(inbound)
         elif edge['node2_pub'] == peer_node_id:
+            if edge['node1_pub'] == my_pubkey:
+                # ignore this edge if it's shared between our node and peer
+                continue
             inbound = {
                 'capacity': edge['capacity'],
+                # We will take node1_policy because we want inbound policy, not outbound
                 'fee_rate_milli_msat': edge['node1_policy']['fee_rate_milli_msat']
             }
             peer_inbound.append(inbound)
@@ -193,7 +200,7 @@ def strategy_match_peer_inbound_weighted_average(channel, policy, **kwargs):
     # Calculate the weighted average inbound fee by multiplying each fee by
     # the adjusted ratio and taking the sum.
 
-    max_usable_ppm = policy.getint('inbound_skip_fee_rate_above_ppm')
+    max_usable_ppm = policy.getint('inbound_weighted_average_fee_rate_cutoff_ppm')
 
     for inbound in peer_inbound:
         if inbound['fee_rate_milli_msat'] >= max_usable_ppm:
