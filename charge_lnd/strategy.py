@@ -64,7 +64,7 @@ class StrategyDelegate:
 
         slices = self.policy.getint('max_htlc_proportional_slices')
         if slices:
-            result = calculate_slices(channel.capacity, channel.local_balance, slices)
+            result = calculate_slices(channel.capacity, channel.local_balance, slices) * 1000
 
         ratio = self.policy.getfloat('max_htlc_msat_ratio')
         if ratio:
