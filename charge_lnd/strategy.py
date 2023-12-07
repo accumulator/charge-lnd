@@ -19,6 +19,20 @@ def strategy(_func=None,*,name):
         return call_strategy
     return register_strategy
 
+def calculate_slices(max_value, current_value, num_slices):
+    # Calculate the size of each slice
+    slice_size = max_value // num_slices
+
+    # Find the slice number containing the current_value
+    current_slice = min(current_value // slice_size, num_slices - 1)
+
+    # Determine the upper value of the slice closest to current without going over
+    slice_point = min((current_slice + 1) * slice_size - 1, max_value)
+
+    print(f"max: {max_value}, current: {current_value}, slices: {num_slices}")
+    print(f"slice_point: {slice_point}")
+
+    return slice_point
 
 class StrategyDelegate:
     STRATEGIES = {}
@@ -48,6 +62,11 @@ class StrategyDelegate:
 
     def effective_max_htlc_msat(self, channel):
         result = self.policy.getint('max_htlc_msat')
+
+        slices = self.policy.getint('max_htlc_proportional_slices')
+        if slices:
+            result = calculate_slices(channel.capacity, channel.local_balance, slices)
+
         ratio = self.policy.getfloat('max_htlc_msat_ratio')
         if ratio:
             ratio = max(0,min(1,ratio))
