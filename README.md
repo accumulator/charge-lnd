@@ -196,6 +196,14 @@ Available strategies:
 |**disable** | disables the channel in the outgoing direction. Channel will be re-enabled again if it matches another policy (except when that policy uses an 'ignore' strategy).||
 |**use_config** | process channel according to rules defined in another config file.|**config_file**|
 
+Strategy for match peer inbound weighted average will apply the following properties if defined:
+
+|Property|Description|Values|
+|:--|:--|:--|
+| **inbound_skip_fee_rate_above_ppm** | Inbound rate of peer to ignore exceeds this value | ppm |
+| **inbound_weighted_average_fee_rate_premium_percent** | Premium added to the final peer inbound weighted average | percent |
+
+
 All strategies (except the ignore strategy) will apply the following properties if defined:
 
 |Property|Description|Values|

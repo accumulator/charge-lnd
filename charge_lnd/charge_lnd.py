@@ -124,8 +124,6 @@ def main():
                 if time_lock_delta_changed:
                     s = ' ➜ ' + fmt.col_hi(new_time_lock_delta)
                 print("  time_lock_delta: %s%s" % (fmt.col_hi(my_policy.time_lock_delta), s) )
-        #debugging
-        #return True
     return True
 
 def get_argument_parser():
