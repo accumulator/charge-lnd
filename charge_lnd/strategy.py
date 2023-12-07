@@ -207,7 +207,7 @@ def strategy_match_peer_inbound_weighted_average(channel, policy, **kwargs):
         premium = int(weighted_average_inbound_fee * (premium_pct/100))
         weighted_average_inbound_fee += premium
 
-    return (policy.getint('fee_ppm'), weighted_average_inbound_fee)
+    return (policy.getint('base_fee_msat'), weighted_average_inbound_fee)
 
 @strategy(name = 'cost')
 def strategy_cost(channel, policy, **kwargs):
