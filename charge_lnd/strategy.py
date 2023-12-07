@@ -29,9 +29,6 @@ def calculate_slices(max_value, current_value, num_slices):
     # Determine the upper value of the slice closest to current without going over
     slice_point = min((current_slice + 1) * slice_size - 1, max_value)
 
-    print(f"max: {max_value}, current: {current_value}, slices: {num_slices}")
-    print(f"slice_point: {slice_point}")
-
     return slice_point
 
 class StrategyDelegate:
