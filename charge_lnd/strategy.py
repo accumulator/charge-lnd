@@ -5,8 +5,6 @@ import functools
 from . import fmt
 from .config import Config
 from .electrum import Electrum
-from pprint import pprint
-import pickle
 
 edges_cache = None
 
