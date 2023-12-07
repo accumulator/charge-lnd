@@ -215,6 +215,4 @@ See [development guide](DEVELOPMENT-GUIDE.md) for help getting started.
 
 Please also consider opening a channel with my node, or sending tips via keysend:
 
-* accumulator :
-
-`0266ad254117f16f16c3457e081e6207e91c5e414477a208cf4d9c633322799038@92.110.3.84:9735`
+`0266ad254117f16f16c3457e081e6207e91c5e414477a208cf4d9c633322799038@lightning.channels.zijn.cool:9735`
