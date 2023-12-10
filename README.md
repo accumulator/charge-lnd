@@ -189,20 +189,12 @@ Available strategies:
 |**ignore_fees** | don't make any fee changes, only update htlc size limits and time_lock_delta||
 |**static** | sets fixed base fee and fee rate values.| **fee_ppm**|
 |**match_peer** | sets the same base fee and fee rate values as the peer|if **base_fee_msat** or **fee_ppm** are set the override the peer values|
-|**match_peer_inbound_weighted_average** | sets the fee rate to the peer's inbound weighted average fee rate||
 |**cost** | calculate cost for opening channel, and set ppm to cover cost when channel depletes.|**cost_factor**|
 |**onchain_fee** | sets the fees to a % equivalent of a standard onchain payment (Requires --electrum-server to be specified.)| **onchain_fee_btc** BTC<br>within **onchain_fee_numblocks** blocks.|
 |**proportional** | sets fee ppm according to balancedness.|**min_fee_ppm**<br>**max_fee_ppm**<br>**sum_peer_chans** consider all channels with peer for balance calculations|
+|**proportional_peer_inbound** | sets the fee rate according to balancedness around a range based on the peer's inbound weighted average fee rate|**min_fee_ppm**<br>**max_fee_ppm**<br>**sum_peer_chans** consider all channels with peer for balance calculations<br>**fee_avg_calc_cutoff_ppm** Ignore peer inbound ppm above this value<br>**avg_fee_ppm_multiplier** Tweak avg ppm by this multiplier (0..1)<br>**upper_fee_ppm_multiplier** Tweak upper ppm by this multiplier; max_fee_ppm will still be honored (0..1)|
 |**disable** | disables the channel in the outgoing direction. Channel will be re-enabled again if it matches another policy (except when that policy uses an 'ignore' strategy).||
 |**use_config** | process channel according to rules defined in another config file.|**config_file**|
-
-Strategy for match peer inbound weighted average will apply the following properties if defined:
-
-|Property|Description|Values|
-|:--|:--|:--|
-| **inbound_weighted_average_fee_rate_cutoff_ppm** | Inbound rate of peer to ignore exceeds this value | ppm |
-| **inbound_weighted_average_fee_rate_premium_percent** | Premium added to the final peer inbound weighted average | percent |
-
 
 All strategies (except the ignore strategy) will apply the following properties if defined:
 

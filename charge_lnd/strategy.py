@@ -5,6 +5,7 @@ import functools
 from . import fmt
 from .config import Config
 from .electrum import Electrum
+from pprint import pprint
 
 edges_cache = None
 
@@ -28,10 +29,36 @@ def calculate_slices(max_value, current_value, num_slices):
     # Find the slice number containing the current_value
     current_slice = min(current_value // slice_size, num_slices - 1)
 
-    # Determine the upper value of the slice closest to current without going over
-    slice_point = min((current_slice + 1) * slice_size - 1, max_value)
+    # Determine the upper value of the current slice without going over
+    slice_point = max(1, min(current_slice * slice_size, max_value))
 
     return slice_point
+
+def get_ratio(channel, policy, **kwargs):
+    if policy.getbool('sum_peer_chans', False):
+        lnd = kwargs['lnd']
+        shared_chans=lnd.get_shared_channels(channel.remote_pubkey)
+        local_balance = 0
+        remote_balance = 0
+        for c in (shared_chans):
+            # Include balance of all active channels with peer
+            if c.active:
+                local_balance += c.local_balance
+                remote_balance += c.remote_balance
+        total_balance = local_balance + remote_balance
+        if total_balance == 0:
+            # Sum inactive channels because the node is likely offline with no active channels.
+            # When they come back online their fees won't be changed.
+            for c in (shared_chans):
+                if not c.active:
+                    local_balance += c.local_balance
+                    remote_balance += c.remote_balance
+        total_balance = local_balance + remote_balance
+        ratio = local_balance/total_balance
+    else:
+        ratio = channel.local_balance/(channel.local_balance + channel.remote_balance)
+
+    return ratio
 
 class StrategyDelegate:
     STRATEGIES = {}
@@ -99,28 +126,7 @@ def strategy_proportional(channel, policy, **kwargs):
     if ppm_min is None or ppm_max is None:
         raise Exception('proportional strategy requires min_fee_ppm and max_fee_ppm properties')
 
-    if policy.getbool('sum_peer_chans', False):
-        lnd = kwargs['lnd']
-        shared_chans=lnd.get_shared_channels(channel.remote_pubkey)
-        local_balance = 0
-        remote_balance = 0
-        for c in (shared_chans):
-            # Include balance of all active channels with peer
-            if c.active:
-                local_balance += c.local_balance
-                remote_balance += c.remote_balance
-        total_balance = local_balance + remote_balance
-        if total_balance == 0:
-            # Sum inactive channels because the node is likely offline with no active channels.
-            # When they come back online their fees won't be changed.
-            for c in (shared_chans):
-                if not c.active:
-                    local_balance += c.local_balance
-                    remote_balance += c.remote_balance
-        total_balance = local_balance + remote_balance
-        ratio = local_balance/total_balance
-    else:
-        ratio = channel.local_balance/(channel.local_balance + channel.remote_balance)
+    ratio = get_ratio(channel, policy, **kwargs)
 
     ppm = int(ppm_min + (1.0 - ratio) * (ppm_max - ppm_min))
     # clamp to 0..inf
@@ -136,11 +142,13 @@ def strategy_match_peer(channel, policy, **kwargs):
     return (policy.getint('base_fee_msat', peernode_policy.fee_base_msat),
             policy.getint('fee_ppm', peernode_policy.fee_rate_milli_msat))
 
-@strategy(name = 'match_peer_inbound_weighted_average')
-def strategy_match_peer_inbound_weighted_average(channel, policy, **kwargs):
+@strategy(name = 'proportional_peer_inbound')
+def strategy_proportional_peer_inbound(channel, policy, **kwargs):
     lnd = kwargs['lnd']
     chan_info = lnd.get_chan_info(channel.chan_id)
     my_pubkey = lnd.get_own_pubkey()
+
+    pprint(my_pubkey)
 
     peer_node_id = chan_info.node1_pub if chan_info.node2_pub == my_pubkey else chan_info.node2_pub
 
@@ -152,15 +160,18 @@ def strategy_match_peer_inbound_weighted_average(channel, policy, **kwargs):
         # cache only the data we need
         edges = []
         for edge in edges_list:
+            #pprint(edge)
             the_edge = {
                 "node1_pub": edge.node1_pub,
                 "node2_pub": edge.node2_pub,
                 'capacity': edge.capacity,
                 "node1_policy": {
-                   'fee_rate_milli_msat': edge.node1_policy.fee_rate_milli_msat
+                   'fee_rate_milli_msat': edge.node1_policy.fee_rate_milli_msat,
+                   'max_htlc_msat': edge.node1_policy.max_htlc_msat
                 },
                 "node2_policy": {
-                   'fee_rate_milli_msat': edge.node2_policy.fee_rate_milli_msat
+                   'fee_rate_milli_msat': edge.node2_policy.fee_rate_milli_msat,
+                   'max_htlc_msat': edge.node2_policy.max_htlc_msat
                 }
             }
             edges.append(the_edge)
@@ -171,7 +182,7 @@ def strategy_match_peer_inbound_weighted_average(channel, policy, **kwargs):
     peer_inbound = []
 
     total_peer_capacity = 0
-    weighted_average_inbound_fee = 0
+    ppm_avg = 0
 
     for edge in edges:
         if edge['node1_pub'] == peer_node_id:
@@ -179,42 +190,103 @@ def strategy_match_peer_inbound_weighted_average(channel, policy, **kwargs):
                 # ignore this edge if it's shared between our node and peer
                 continue
             inbound = {
-                'capacity': edge['capacity'],
+                #'capacity': edge['capacity'],
+                # We will use the max_htlc_msat // 1000 as the estimated capacity
+                'capacity': edge['node2_policy']['max_htlc_msat'] // 1000,
                 # We will take node2_policy because we want inbound policy, not outbound
                 'fee_rate_milli_msat': edge['node2_policy']['fee_rate_milli_msat']
             }
-            total_peer_capacity += edge['capacity']
+            total_peer_capacity += inbound['capacity']
             peer_inbound.append(inbound)
         elif edge['node2_pub'] == peer_node_id:
             if edge['node1_pub'] == my_pubkey:
                 # ignore this edge if it's shared between our node and peer
                 continue
             inbound = {
-                'capacity': edge['capacity'],
+                #'capacity': edge['capacity'],
+                # We will use the max_htlc_msat // 1000 as the estimated capacity
+                'capacity': edge['node1_policy']['max_htlc_msat'] // 1000,
                 # We will take node1_policy because we want inbound policy, not outbound
                 'fee_rate_milli_msat': edge['node1_policy']['fee_rate_milli_msat']
             }
             peer_inbound.append(inbound)
-            total_peer_capacity += edge['capacity']
+            total_peer_capacity += inbound['capacity']
 
     # Calculate the weighted average inbound fee by multiplying each fee by
     # the adjusted ratio and taking the sum.
 
-    max_usable_ppm = policy.getint('inbound_weighted_average_fee_rate_cutoff_ppm')
+    fee_avg_calc_cutoff_ppm = policy.getint('fee_avg_calc_cutoff_ppm')
 
     for inbound in peer_inbound:
-        if inbound['fee_rate_milli_msat'] >= max_usable_ppm:
+        if inbound['fee_rate_milli_msat'] >= fee_avg_calc_cutoff_ppm:
             # ignore fee rate values over max_usable_ppm in our calculation
             continue
-        weighted_average_inbound_fee += int((inbound['capacity']/total_peer_capacity)*inbound['fee_rate_milli_msat'])
+        ppm_avg += int((inbound['capacity']/total_peer_capacity)*inbound['fee_rate_milli_msat'])
 
-    premium_pct = policy.getint('inbound_weighted_average_fee_rate_premium_percent')
+    # Use the same channel ratio calculation as proportional strategy
+    ratio = get_ratio(channel, policy, **kwargs)
+    pprint("ratio="+str(ratio))
 
-    if premium_pct:
-        premium = int(weighted_average_inbound_fee * (premium_pct/100))
-        weighted_average_inbound_fee += premium
+    ppm_min = policy.getint('min_fee_ppm')
+    ppm_max = policy.getint('max_fee_ppm')
+    avg_fee_ppm_multiplier = policy.getfloat('avg_fee_ppm_multiplier')
+    upper_fee_ppm_multiplier = policy.getfloat('upper_fee_ppm_multiplier')
 
-    return (policy.getint('base_fee_msat'), weighted_average_inbound_fee)
+    pprint("ppm_min="+str(ppm_min))
+    pprint("ppm_max="+str(ppm_max))
+    pprint("avg_fee_ppm_multiplier="+str(avg_fee_ppm_multiplier))
+    pprint("upper_fee_ppm_multiplier="+str(upper_fee_ppm_multiplier))
+
+    if ppm_min is None or ppm_max is None or avg_fee_ppm_multiplier is None or upper_fee_ppm_multiplier is None:
+        raise Exception('proportional inbound weighted strategy requires min_fee_ppm, max_fee_ppm, avg_fee_ppm_multiplier, and upper_fee_ppm_multiplier properties')
+
+    if ppm_min >= ppm_max:
+        raise Exception('ppm_min should be less than ppm_max')
+
+    # The avg_fee_ppm_multiplier can tweak the ppm_avg to be slightly
+    # lower or higher, changing the center-point of the calculation.
+    # You might do this if you think the average values are all
+    # too cheap or too expensive. We will also make sure the average
+    # is not lower than ppm_min here, or higher than ppm_max.
+    # It's probably perfectly fine to leave this multiplier at 1.
+
+    ppm_avg = min(ppm_max, max(ppm_min, ppm_avg * avg_fee_ppm_multiplier))
+    pprint("ppm_avg="+str(ppm_avg))
+
+    # The upper_fee_ppm_multiplier sets the upper maximum when calculating
+    # the ppm when the local balance proportion drops below 0.5. A value
+    # of 2 means that the upper maximum is double the ppm_avg. If you
+    # wanted to increase fees more aggressively as the local balance falls,
+    # you could choose a higher multiplier.
+    # It's probably perfectly fine to leave this multiplier at 2.
+
+    ppm_upper = ppm_avg * upper_fee_ppm_multiplier
+    pprint("ppm_upper="+str(ppm_upper))
+
+    # When the ratio is near half, we want the ppm to be exactly
+    # the ppm_avg. When the ratio is lower, we want a higher ppm that
+    # is between ppm_avg and ppm_upper. When the ratio is higher,
+    # we want a lower ppm between ppm_avg and ppm_min. Since the range
+    # between can be unequal, e.g. average = 500, min = 400, max
+    # = 3000, we don't want to make the 0.5 ratio be the middle
+    # of the range 400 - 3000. It's much larger than the target
+    # average of 500. So we calculate the two sides separately.
+
+    if ratio < 0.5:
+        ppm = int(ppm_upper + 2 * (ppm_avg - ppm_upper) * ratio)
+    elif ratio > 0.5:
+        ppm = int(ppm_min + 2 * (ppm_avg - ppm_min) * (1 - ratio))
+    else:
+        ppm = ppm_avg
+
+    # Cap it to the max
+    ppm = min(ppm, ppm_max)
+
+    # clamp to 0..inf
+    ppm = max(ppm, 0)
+
+    pprint("ppm="+str(ppm))
+    return (policy.getint('base_fee_msat'), ppm)
 
 @strategy(name = 'cost')
 def strategy_cost(channel, policy, **kwargs):
