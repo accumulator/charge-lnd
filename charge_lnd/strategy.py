@@ -5,7 +5,6 @@ import functools
 from . import fmt
 from .config import Config
 from .electrum import Electrum
-from pprint import pprint
 
 edges_cache = None
 
@@ -148,8 +147,6 @@ def strategy_proportional_peer_inbound(channel, policy, **kwargs):
     chan_info = lnd.get_chan_info(channel.chan_id)
     my_pubkey = lnd.get_own_pubkey()
 
-    pprint(my_pubkey)
-
     peer_node_id = chan_info.node1_pub if chan_info.node2_pub == my_pubkey else chan_info.node2_pub
 
     # avoid having to fetch get_edges() multiple times
@@ -160,7 +157,6 @@ def strategy_proportional_peer_inbound(channel, policy, **kwargs):
         # cache only the data we need
         edges = []
         for edge in edges_list:
-            #pprint(edge)
             the_edge = {
                 "node1_pub": edge.node1_pub,
                 "node2_pub": edge.node2_pub,
@@ -225,17 +221,11 @@ def strategy_proportional_peer_inbound(channel, policy, **kwargs):
 
     # Use the same channel ratio calculation as proportional strategy
     ratio = get_ratio(channel, policy, **kwargs)
-    pprint("ratio="+str(ratio))
 
     ppm_min = policy.getint('min_fee_ppm')
     ppm_max = policy.getint('max_fee_ppm')
     avg_fee_ppm_multiplier = policy.getfloat('avg_fee_ppm_multiplier')
     upper_fee_ppm_multiplier = policy.getfloat('upper_fee_ppm_multiplier')
-
-    pprint("ppm_min="+str(ppm_min))
-    pprint("ppm_max="+str(ppm_max))
-    pprint("avg_fee_ppm_multiplier="+str(avg_fee_ppm_multiplier))
-    pprint("upper_fee_ppm_multiplier="+str(upper_fee_ppm_multiplier))
 
     if ppm_min is None or ppm_max is None or avg_fee_ppm_multiplier is None or upper_fee_ppm_multiplier is None:
         raise Exception('proportional inbound weighted strategy requires min_fee_ppm, max_fee_ppm, avg_fee_ppm_multiplier, and upper_fee_ppm_multiplier properties')
@@ -251,7 +241,6 @@ def strategy_proportional_peer_inbound(channel, policy, **kwargs):
     # It's probably perfectly fine to leave this multiplier at 1.
 
     ppm_avg = min(ppm_max, max(ppm_min, ppm_avg * avg_fee_ppm_multiplier))
-    pprint("ppm_avg="+str(ppm_avg))
 
     # The upper_fee_ppm_multiplier sets the upper maximum when calculating
     # the ppm when the local balance proportion drops below 0.5. A value
@@ -261,7 +250,6 @@ def strategy_proportional_peer_inbound(channel, policy, **kwargs):
     # It's probably perfectly fine to leave this multiplier at 2.
 
     ppm_upper = ppm_avg * upper_fee_ppm_multiplier
-    pprint("ppm_upper="+str(ppm_upper))
 
     # When the ratio is near half, we want the ppm to be exactly
     # the ppm_avg. When the ratio is lower, we want a higher ppm that
@@ -285,7 +273,6 @@ def strategy_proportional_peer_inbound(channel, policy, **kwargs):
     # clamp to 0..inf
     ppm = max(ppm, 0)
 
-    pprint("ppm="+str(ppm))
     return (policy.getint('base_fee_msat'), ppm)
 
 @strategy(name = 'cost')
