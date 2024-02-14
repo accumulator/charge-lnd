@@ -192,6 +192,7 @@ Available strategies:
 |**cost** | calculate cost for opening channel, and set ppm to cover cost when channel depletes.|**cost_factor**|
 |**onchain_fee** | sets the fees to a % equivalent of a standard onchain payment (Requires --electrum-server to be specified.)| **onchain_fee_btc** BTC<br>within **onchain_fee_numblocks** blocks.|
 |**proportional** | sets fee ppm according to balancedness.|**min_fee_ppm**<br>**max_fee_ppm**<br>**sum_peer_chans** consider all channels with peer for balance calculations|
+|**proportional_peer_inbound** | sets the fee rate according to balancedness around a range based on the peer's inbound weighted average fee rate|**min_fee_ppm**<br>**max_fee_ppm**<br>**sum_peer_chans** consider all channels with peer for balance calculations<br>**fee_avg_calc_cutoff_ppm** Ignore peer inbound ppm above this value<br>**avg_fee_ppm_multiplier** Tweak avg ppm by this multiplier (0..1)<br>**upper_fee_ppm_multiplier** Tweak upper ppm by this multiplier; max_fee_ppm will still be honored (0..1)|
 |**disable** | disables the channel in the outgoing direction. Channel will be re-enabled again if it matches another policy (except when that policy uses an 'ignore' strategy).||
 |**use_config** | process channel according to rules defined in another config file.|**config_file**|
 
@@ -203,6 +204,7 @@ All strategies (except the ignore strategy) will apply the following properties 
 | **min_htlc_msat** | Minimum size (in msat) of HTLC to allow | # msat |
 | **max_htlc_msat** | Maximum size (in msat) of HTLC to allow | # msat |
 | **max_htlc_msat_ratio** | Maximum size of HTLC to allow as a fraction of total channel capacity | 0..1 |
+| **max_htlc_proportional_slices** | Maximum size of HTLC set proportionally to local balance with slices number of steps | # slices |
 | **time_lock_delta** | Time Lock Delta | # blocks |
 | **min_fee_ppm_delta** | Minimum change in fees (ppm) before updating channel | ppm delta |
 
