@@ -33,12 +33,12 @@ class StrategyDelegate:
         try:
             result = StrategyDelegate.STRATEGIES[strategy](channel, self.policy, name=self.policy.name, lnd=self.policy.lnd)
             # set policy htlc limits if not overruled by the strategy
-            if len(result) == 2:
+            if len(result) == 4:
                 result = result + ( self.policy.getint('min_htlc_msat'),
                                     self.effective_max_htlc_msat(channel),
                                     self.policy.getint('time_lock_delta') )
             # disabled = False by default
-            if len(result) == 5:
+            if len(result) == 7:
                 result = result + ( False, )
 
             return result
@@ -62,15 +62,16 @@ class StrategyDelegate:
 
 @strategy(name = 'ignore')
 def strategy_ignore(channel, policy, **kwargs):
-    return (None, None, None, None, None)
+    return (None, None, None, None, None, None, None)
 
 @strategy(name = 'ignore_fees')
 def strategy_ignore_fees(channel, policy, **kwargs):
-    return (None, None)
+    return (None, None, None, None)
 
 @strategy(name = 'static')
 def strategy_static(channel, policy, **kwargs):
-    return (policy.getint('base_fee_msat'), policy.getint('fee_ppm'))
+    return (policy.getint('base_fee_msat'), policy.getint('fee_ppm'), 
+            policy.getint('inbound_base_fee_msat'), policy.getint('inbound_fee_ppm'))
 
 @strategy(name = 'proportional')
 def strategy_proportional(channel, policy, **kwargs):
@@ -107,7 +108,7 @@ def strategy_proportional(channel, policy, **kwargs):
     ppm = int(ppm_min + (1.0 - ratio) * (ppm_max - ppm_min))
     # clamp to 0..inf
     ppm = max(ppm,0)
-    return (policy.getint('base_fee_msat'), ppm)
+    return (policy.getint('base_fee_msat'), ppm, None, None)
 
 @strategy(name = 'match_peer')
 def strategy_match_peer(channel, policy, **kwargs):
@@ -116,7 +117,9 @@ def strategy_match_peer(channel, policy, **kwargs):
     my_pubkey = lnd.get_own_pubkey()
     peernode_policy = chan_info.node1_policy if chan_info.node2_pub == my_pubkey else chan_info.node2_policy
     return (policy.getint('base_fee_msat', peernode_policy.fee_base_msat),
-            policy.getint('fee_ppm', peernode_policy.fee_rate_milli_msat))
+            policy.getint('fee_ppm', peernode_policy.fee_rate_milli_msat),
+            policy.getint('inbound_base_fee_msat', peernode_policy.inbound_fee_base_msat),
+            policy.getint('inbound_fee_ppm', peernode_policy.inbound_fee_rate_milli_msat))
 
 @strategy(name = 'cost')
 def strategy_cost(channel, policy, **kwargs):
@@ -135,7 +138,7 @@ def strategy_cost(channel, policy, **kwargs):
         ppm = int(policy.getfloat('cost_factor', 1.0) * 1_000_000 * chan_open_tx.total_fees / chan_info.capacity)
     else:
         ppm = 1  # tx not found, incoming channel, default to 1
-    return (policy.getint('base_fee_msat'), ppm)
+    return (policy.getint('base_fee_msat'), ppm, None, None)
 
 @strategy(name = 'onchain_fee')
 def strategy_onchain_fee(channel, policy, **kwargs):
@@ -151,7 +154,7 @@ def strategy_onchain_fee(channel, policy, **kwargs):
         return (None, None, None, None, None)
     reference_payment = policy.getfloat('onchain_fee_btc', 0.1)
     fee_ppm = int((0.01 / reference_payment) * (223 * sat_per_byte))
-    return (policy.getint('base_fee_msat'), fee_ppm)
+    return (policy.getint('base_fee_msat'), fee_ppm, None, None)
 
 @strategy(name = 'use_config')
 def strategy_use_config(channel, policy, **kwargs):

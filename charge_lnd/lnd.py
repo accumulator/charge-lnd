@@ -140,7 +140,8 @@ class Lnd:
                 return None
         return self.chan_info[chanid]
 
-    def update_chan_policy(self, chanid, base_fee_msat, fee_ppm, min_htlc_msat, max_htlc_msat, time_lock_delta):
+    def update_chan_policy(self, chanid, base_fee_msat, fee_ppm, min_htlc_msat, max_htlc_msat, 
+                           time_lock_delta, inbound_base_fee_msat, inbound_fee_ppm):
         chan_info = self.get_chan_info(chanid)
         if not chan_info:
             return None
@@ -157,8 +158,8 @@ class Lnd:
             min_htlc_msat_specified=min_htlc_msat is not None,
             max_htlc_msat=(max_htlc_msat if max_htlc_msat is not None else my_policy.max_htlc_msat),
             time_lock_delta=(time_lock_delta if time_lock_delta is not None else my_policy.time_lock_delta),
-            inbound_base_fee_msat=my_policy.inbound_fee_base_msat,
-            inbound_fee_rate_ppm=my_policy.inbound_fee_rate_milli_msat
+            inbound_base_fee_msat=(inbound_base_fee_msat if inbound_base_fee_msat is not None else my_policy.inbound_fee_base_msat),
+            inbound_fee_rate_ppm=(inbound_fee_ppm if inbound_fee_ppm is not None else my_policy.inbound_fee_rate_milli_msat)
         ))
 
     def get_txns(self, start_height = None, end_height = None):

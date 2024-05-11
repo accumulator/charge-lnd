@@ -61,6 +61,20 @@ This policy matches the channels against the `chan.min_capacity` criterium. Only
 
 If a channel matches this policy, the `static` strategy is then used, which takes the `base_fee_msat` and `fee_ppm`  properties defined in the policy and applies them to the channel.
 
+If at least lnd 0.18 is used, charge-lnd also supports the experimental support of inbound fees. By default, lnd only supports negative inbound fees on the inbound channel, which then act as a “discount” on the outbound fees of the outgoing channel. However, the entire forward fee cannot become negative.
+
+Example with inbound fees:
+```
+[example-policy]
+chan.min_capacity = 500000
+
+strategy = static
+base_fee_msat = 1000
+fee_ppm = 2000
+inbound_base_fee_msat = -500
+inbound_fee_ppm = -1000
+```
+
 ### Non-final policies
 
 You can also define a 'non-final' policy. This is simply a policy without a strategy.
@@ -102,6 +116,8 @@ chan.min_capacity = 250000
 strategy = static
 base_fee_msat = 10000
 fee_ppm = 500
+inbound_base_fee_msat = -8000
+inbound_fee_ppm = -400
 
 [encourage-routing-to-balance]
 chan.min_ratio = 0.9
@@ -187,11 +203,11 @@ Available strategies:
 |:--|:--|:--|
 |**ignore** | ignores the channel completely||
 |**ignore_fees** | don't make any fee changes, only update htlc size limits and time_lock_delta||
-|**static** | sets fixed base fee and fee rate values.| **fee_ppm**|
-|**match_peer** | sets the same base fee and fee rate values as the peer|if **base_fee_msat** or **fee_ppm** are set the override the peer values|
+|**static** | sets fixed base fee and fee rate values for the outbound and inbound side.| **fee_ppm**<br>**base_fee_msat**<br>**inbound_fee_ppm**<br>**inbound_base_fee_msat**|
+|**match_peer** | sets the same base fee and fee rate values as the peer for the outbound and inbound side.|if **base_fee_msat**, **fee_ppm**, **inbound_base_fee_msat** or **inbound_fee_ppm**  are set the override the peer values|
 |**cost** | calculate cost for opening channel, and set ppm to cover cost when channel depletes.|**cost_factor**|
 |**onchain_fee** | sets the fees to a % equivalent of a standard onchain payment (Requires --electrum-server to be specified.)| **onchain_fee_btc** BTC<br>within **onchain_fee_numblocks** blocks.|
-|**proportional** | sets fee ppm according to balancedness.|**min_fee_ppm**<br>**max_fee_ppm**<br>**sum_peer_chans** consider all channels with peer for balance calculations|
+|**proportional** | sets outbound fee ppm according to balancedness. Inbound fee ppm keeps unchanged.|**min_fee_ppm**<br>**max_fee_ppm**<br>**sum_peer_chans** consider all channels with peer for balance calculations|
 |**disable** | disables the channel in the outgoing direction. Channel will be re-enabled again if it matches another policy (except when that policy uses an 'ignore' strategy).||
 |**use_config** | process channel according to rules defined in another config file.|**config_file**|
 

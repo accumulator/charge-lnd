@@ -51,7 +51,7 @@ def main():
         if not policy:
             continue
 
-        (new_base_fee_msat, new_fee_ppm, new_min_htlc, new_max_htlc, new_time_lock_delta, disable) = policy.strategy.execute(channel)
+        (new_base_fee_msat, new_fee_ppm, new_inbound_base_fee_msat, new_inbound_fee_ppm, new_min_htlc, new_max_htlc, new_time_lock_delta, disable) = policy.strategy.execute(channel)
 
         if channel.chan_id in lnd.feereport:
             (current_base_fee_msat, current_fee_ppm) = lnd.feereport[channel.chan_id]
@@ -65,12 +65,16 @@ def main():
         min_fee_ppm_delta = policy.getint('min_fee_ppm_delta',0)
 
         fee_ppm_changed = new_fee_ppm is not None and current_fee_ppm != new_fee_ppm and abs(current_fee_ppm - new_fee_ppm) >= min_fee_ppm_delta
+        inbound_fee_ppm_changed = new_inbound_fee_ppm is not None and my_policy.inbound_fee_rate_milli_msat != new_inbound_fee_ppm and \
+            abs(my_policy.inbound_fee_rate_milli_msat - new_inbound_fee_ppm) >= min_fee_ppm_delta
 
         base_fee_changed = new_base_fee_msat is not None and current_base_fee_msat != new_base_fee_msat
+        inbound_base_fee_changed = new_inbound_base_fee_msat is not None and my_policy.inbound_fee_base_msat != new_inbound_base_fee_msat
         min_htlc_changed = new_min_htlc is not None and my_policy.min_htlc != new_min_htlc
         max_htlc_changed = new_max_htlc is not None and my_policy.max_htlc_msat != new_max_htlc
         time_lock_delta_changed = new_time_lock_delta is not None and my_policy.time_lock_delta != new_time_lock_delta
-        is_changed = fee_ppm_changed or base_fee_changed or min_htlc_changed or max_htlc_changed or time_lock_delta_changed
+        is_changed = fee_ppm_changed or base_fee_changed or min_htlc_changed or max_htlc_changed or \
+            time_lock_delta_changed or inbound_base_fee_changed + inbound_fee_ppm_changed
 
         chan_status_changed = False
         if lnd.min_version(0,13) and channel.active and disable != my_policy.disabled and policy.get('strategy') != 'ignore':
@@ -85,44 +89,57 @@ def main():
                 )
 
         if is_changed and not arguments.dry_run:
-            lnd.update_chan_policy(channel.chan_id, new_base_fee_msat, new_fee_ppm, new_min_htlc, new_max_htlc, new_time_lock_delta)
+            lnd.update_chan_policy(channel.chan_id, new_base_fee_msat, new_fee_ppm, new_min_htlc, 
+                                   new_max_htlc, new_time_lock_delta, new_inbound_base_fee_msat, new_inbound_fee_ppm)
 
         if is_changed or chan_status_changed or arguments.verbose:
-            print("  policy:          %s" % fmt.col_hi(policy.name) )
-            print("  strategy:        %s" % fmt.col_hi(policy.get('strategy')) )
+            print("  policy:                  %s" % fmt.col_hi(policy.name) )
+            print("  strategy:                %s" % fmt.col_hi(policy.get('strategy')) )
             if chan_status_changed or arguments.verbose:
                 s = 'disabled' if my_policy.disabled else 'enabled'
                 if chan_status_changed:
                     s = s + ' ➜ '
                     s = s + 'disabled' if disable else 'enabled'
-                print("  channel status:  %s" % fmt.col_hi(s))
+                print("  channel status:          %s" % fmt.col_hi(s))
             if new_base_fee_msat is not None or arguments.verbose:
                 s = ''
                 if base_fee_changed:
                     s = ' ➜ ' + fmt.col_hi(new_base_fee_msat)
-                print("  base_fee_msat:   %s%s" % (fmt.col_hi(current_base_fee_msat), s) )
+                print("  base_fee_msat:           %s%s" % (fmt.col_hi(current_base_fee_msat), s) )
             if new_fee_ppm is not None or arguments.verbose:
                 s = ''
                 if fee_ppm_changed:
                     s = ' ➜ ' + fmt.col_hi(new_fee_ppm)
                     if min_fee_ppm_delta > abs(new_fee_ppm - current_fee_ppm):
                         s = s + ' (min_fee_ppm_delta=%d)' % min_fee_ppm_delta
-                print("  fee_ppm:         %s%s" % (fmt.col_hi(current_fee_ppm), s) )
+                print("  fee_ppm:                 %s%s" % (fmt.col_hi(current_fee_ppm), s) )
+            if new_inbound_base_fee_msat is not None or arguments.verbose:
+                s = ''
+                if inbound_base_fee_changed:
+                    s = ' ➜ ' + fmt.col_hi(new_inbound_base_fee_msat)
+                print("  inbound_base_fee_msat:   %s%s" % (fmt.col_hi(my_policy.inbound_fee_base_msat), s) )
+            if new_inbound_fee_ppm is not None or arguments.verbose:
+                s = ''
+                if inbound_fee_ppm_changed:
+                    s = ' ➜ ' + fmt.col_hi(new_inbound_fee_ppm)
+                    if min_fee_ppm_delta > abs(new_inbound_fee_ppm - my_policy.inbound_fee_rate_milli_msat):
+                        s = s + ' (min_fee_ppm_delta=%d)' % min_fee_ppm_delta
+                print("  inbound_fee_ppm:         %s%s" % (fmt.col_hi(my_policy.inbound_fee_rate_milli_msat), s) )
             if new_min_htlc is not None or arguments.verbose:
                 s = ''
                 if min_htlc_changed:
                     s = ' ➜ ' + fmt.col_hi(new_min_htlc)
-                print("  min_htlc_msat:   %s%s" % (fmt.col_hi(my_policy.min_htlc), s) )
+                print("  min_htlc_msat:           %s%s" % (fmt.col_hi(my_policy.min_htlc), s) )
             if new_max_htlc is not None or arguments.verbose:
                 s = ''
                 if max_htlc_changed:
                     s = ' ➜ ' + fmt.col_hi(new_max_htlc)
-                print("  max_htlc_msat:   %s%s" % (fmt.col_hi(my_policy.max_htlc_msat), s) )
+                print("  max_htlc_msat:           %s%s" % (fmt.col_hi(my_policy.max_htlc_msat), s) )
             if new_time_lock_delta is not None or arguments.verbose:
                 s = ''
                 if time_lock_delta_changed:
                     s = ' ➜ ' + fmt.col_hi(new_time_lock_delta)
-                print("  time_lock_delta: %s%s" % (fmt.col_hi(my_policy.time_lock_delta), s) )
+                print("  time_lock_delta:         %s%s" % (fmt.col_hi(my_policy.time_lock_delta), s) )
 
     return True
 
