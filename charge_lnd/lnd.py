@@ -7,7 +7,7 @@ import sys
 import re
 import time
 
-from .grpc_generated import rpc_pb2_grpc as lnrpc, rpc_pb2 as ln
+from .grpc_generated import lightning_pb2_grpc as lnrpc, lightning_pb2 as ln
 from .grpc_generated import router_pb2_grpc as routerrpc, router_pb2 as router
 
 MESSAGE_SIZE_MB = 50 * 1024 * 1024
@@ -156,7 +156,9 @@ class Lnd:
             min_htlc_msat=(min_htlc_msat if min_htlc_msat is not None else my_policy.min_htlc),
             min_htlc_msat_specified=min_htlc_msat is not None,
             max_htlc_msat=(max_htlc_msat if max_htlc_msat is not None else my_policy.max_htlc_msat),
-            time_lock_delta=(time_lock_delta if time_lock_delta is not None else my_policy.time_lock_delta)
+            time_lock_delta=(time_lock_delta if time_lock_delta is not None else my_policy.time_lock_delta),
+            inbound_base_fee_msat=my_policy.inbound_fee_base_msat,
+            inbound_fee_rate_ppm=my_policy.inbound_fee_rate_milli_msat
         ))
 
     def get_txns(self, start_height = None, end_height = None):
