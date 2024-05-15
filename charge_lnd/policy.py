@@ -2,7 +2,7 @@
 import sys
 import re
 import time
-from .strategy import StrategyDelegate
+from .strategy import StrategyDelegate, DONTCARE
 from . import fmt
 
 def debug(message):

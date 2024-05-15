@@ -10,6 +10,8 @@ import time
 from .grpc_generated import lightning_pb2_grpc as lnrpc, lightning_pb2 as ln
 from .grpc_generated import router_pb2_grpc as routerrpc, router_pb2 as router
 
+from .strategy import ChanParams, KEEP, DONTCARE
+
 MESSAGE_SIZE_MB = 50 * 1024 * 1024
 
 
@@ -27,10 +29,11 @@ class Lnd:
             ('grpc.max_receive_message_length', MESSAGE_SIZE_MB)
         ]
         grpc_channel = grpc.secure_channel(server, combined_credentials, channel_options)
-        self.stub = lnrpc.LightningStub(grpc_channel)
+        self.lnstub = lnrpc.LightningStub(grpc_channel)
         self.routerstub = routerrpc.RouterStub(grpc_channel)
         self.graph = None
         self.info = None
+        self.version = None
         self.channels = None
         self.node_info = {}
         self.chan_info = {}
@@ -59,11 +62,14 @@ class Lnd:
 
     def get_info(self):
         if self.info is None:
-            self.info = self.stub.GetInfo(ln.GetInfoRequest())
+            self.info = self.lnstub.GetInfo(ln.GetInfoRequest())
         return self.info
 
+    def supports_inbound_fees(self):
+        return self.min_version(0, 18)
+
     def get_feereport(self):
-        feereport = self.stub.FeeReport(ln.FeeReportRequest())
+        feereport = self.lnstub.FeeReport(ln.FeeReportRequest())
         feedict = {}
         for channel_fee in feereport.channel_fees:
             feedict[channel_fee.chan_id] = (channel_fee.base_fee_msat, channel_fee.fee_per_mil)
@@ -82,7 +88,7 @@ class Lnd:
             done = False
             thishistory = {}
             while not done:
-                forwards = self.stub.ForwardingHistory(ln.ForwardingHistoryRequest(
+                forwards = self.lnstub.ForwardingHistory(ln.ForwardingHistoryRequest(
                     start_time=start_time, end_time=last_time, index_offset=index_offset))
                 if forwards.forwarding_events:
                     for forward in forwards.forwarding_events:
@@ -128,20 +134,19 @@ class Lnd:
 
     def get_node_info(self, nodepubkey):
         if not nodepubkey in self.node_info:
-            self.node_info[nodepubkey] = self.stub.GetNodeInfo(ln.NodeInfoRequest(pub_key=nodepubkey))
+            self.node_info[nodepubkey] = self.lnstub.GetNodeInfo(ln.NodeInfoRequest(pub_key=nodepubkey))
         return self.node_info[nodepubkey]
 
     def get_chan_info(self, chanid):
         if not chanid in self.chan_info:
             try:
-                self.chan_info[chanid] = self.stub.GetChanInfo(ln.ChanInfoRequest(chan_id=chanid))
+                self.chan_info[chanid] = self.lnstub.GetChanInfo(ln.ChanInfoRequest(chan_id=chanid))
             except:
                 print("Failed to lookup {}".format(chanid),file=sys.stderr)
                 return None
         return self.chan_info[chanid]
 
-    def update_chan_policy(self, chanid, base_fee_msat, fee_ppm, min_htlc_msat, max_htlc_msat, 
-                           time_lock_delta, inbound_base_fee_msat, inbound_fee_ppm):
+    def update_chan_policy(self, chanid, chp: ChanParams):
         chan_info = self.get_chan_info(chanid)
         if not chan_info:
             return None
@@ -150,27 +155,27 @@ class Lnd:
             output_index=int(chan_info.chan_point.split(':')[1])
         )
         my_policy = chan_info.node1_policy if chan_info.node1_pub == self.get_own_pubkey() else chan_info.node2_policy
-        return self.stub.UpdateChannelPolicy(ln.PolicyUpdateRequest(
+        return self.lnstub.UpdateChannelPolicy(ln.PolicyUpdateRequest(
             chan_point=channel_point,
-            base_fee_msat=(base_fee_msat if base_fee_msat is not None else my_policy.fee_base_msat),
-            fee_rate=fee_ppm/1000000 if fee_ppm is not None else my_policy.fee_rate_milli_msat/1000000,
-            min_htlc_msat=(min_htlc_msat if min_htlc_msat is not None else my_policy.min_htlc),
-            min_htlc_msat_specified=min_htlc_msat is not None,
-            max_htlc_msat=(max_htlc_msat if max_htlc_msat is not None else my_policy.max_htlc_msat),
-            time_lock_delta=(time_lock_delta if time_lock_delta is not None else my_policy.time_lock_delta),
-            inbound_base_fee_msat=(inbound_base_fee_msat if inbound_base_fee_msat is not None else my_policy.inbound_fee_base_msat),
-            inbound_fee_rate_ppm=(inbound_fee_ppm if inbound_fee_ppm is not None else my_policy.inbound_fee_rate_milli_msat)
+            base_fee_msat=(chp.base_fee_msat if chp.base_fee_msat is not None else my_policy.fee_base_msat),
+            fee_rate=chp.fee_ppm/1000000 if chp.fee_ppm is not None else my_policy.fee_rate_milli_msat/1000000,
+            min_htlc_msat=(chp.min_htlc_msat if chp.min_htlc_msat is not None else my_policy.min_htlc),
+            min_htlc_msat_specified=chp.min_htlc_msat is not None,
+            max_htlc_msat=(chp.max_htlc_msat if chp.max_htlc_msat is not None else my_policy.max_htlc_msat),
+            time_lock_delta=(chp.time_lock_delta if chp.time_lock_delta is not None else my_policy.time_lock_delta),
+            inbound_base_fee_msat=(chp.inbound_base_fee_msat if chp.inbound_base_fee_msat is not None else my_policy.inbound_fee_base_msat),
+            inbound_fee_rate_ppm=(chp.inbound_fee_ppm if chp.inbound_fee_ppm is not None else my_policy.inbound_fee_rate_milli_msat)
         ))
 
     def get_txns(self, start_height = None, end_height = None):
-        return self.stub.GetTransactions(ln.GetTransactionsRequest(
+        return self.lnstub.GetTransactions(ln.GetTransactionsRequest(
             start_height=start_height,
             end_height=end_height
         ))
 
     def get_graph(self):
         if self.graph is None:
-            self.graph = self.stub.DescribeGraph(ln.ChannelGraphRequest(include_unannounced=True))
+            self.graph = self.lnstub.DescribeGraph(ln.ChannelGraphRequest(include_unannounced=True))
         return self.graph
 
     def get_own_pubkey(self):
@@ -182,7 +187,7 @@ class Lnd:
     def get_channels(self):
         if self.channels is None:
             request = ln.ListChannelsRequest()
-            self.channels = self.stub.ListChannels(request).channels
+            self.channels = self.lnstub.ListChannels(request).channels
         return self.channels
 
     # Get all channels shared with a node
@@ -191,7 +196,7 @@ class Lnd:
         byte_peerid=bytes.fromhex(peerid)
         if peerid not in self.peer_channels:
             request = ln.ListChannelsRequest(peer=byte_peerid)
-            self.peer_channels[peerid] = self.stub.ListChannels(request).channels
+            self.peer_channels[peerid] = self.lnstub.ListChannels(request).channels
         return self.peer_channels[peerid]
 
     def min_version(self, major, minor, patch=0):

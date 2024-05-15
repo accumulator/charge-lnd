@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 import sys
 import functools
+from typing import Optional, Union
+from types import SimpleNamespace
+from enum import Enum
 
 from . import fmt
 from .config import Config
@@ -9,6 +12,21 @@ from .electrum import Electrum
 def debug(message):
     sys.stderr.write(message + "\n")
 
+KEEP='keep'
+DONTCARE='dontcare'
+
+def is_defined(x):
+    return x not in [KEEP, DONTCARE] and x is not None
+
+class ChanParams(SimpleNamespace):
+    base_fee_msat: Optional[Union[str, int]] = DONTCARE
+    fee_ppm: Optional[Union[str, int]] = DONTCARE
+    min_htlc_msat: Optional[Union[str, int]] = DONTCARE
+    max_htlc_msat: Optional[Union[str, int]] = DONTCARE
+    time_lock_delta: Optional[Union[str, int]] = DONTCARE
+    inbound_base_fee_msat: Optional[Union[str, int]] = DONTCARE
+    inbound_fee_ppm: Optional[Union[str, int]] = DONTCARE
+    disabled: Optional[Union[str, bool]] = DONTCARE
 
 def strategy(_func=None,*,name):
     def register_strategy(func):
@@ -32,19 +50,19 @@ class StrategyDelegate:
 
         try:
             result = StrategyDelegate.STRATEGIES[strategy](channel, self.policy, name=self.policy.name, lnd=self.policy.lnd)
-            # set policy htlc limits if not overruled by the strategy
-            if len(result) == 4:
-                result = result + ( self.policy.getint('min_htlc_msat'),
-                                    self.effective_max_htlc_msat(channel),
-                                    self.policy.getint('time_lock_delta') )
-            # disabled = False by default
-            if len(result) == 7:
-                result = result + ( False, )
+            if result.min_htlc_msat == DONTCARE:
+                result.min_htlc_msat = self.policy.getint('min_htlc_msat')
+            if result.max_htlc_msat == DONTCARE:
+                result.max_htlc_msat = self.effective_max_htlc_msat(channel)
+            if result.time_lock_delta == DONTCARE:
+                result.time_lock_delta = self.policy.getint('time_lock_delta')
+            if result.disabled == DONTCARE:
+                result.disabled = False
 
             return result
         except Exception as e:
             debug("Error executing strategy '%s'. (Error=%s)" % (strategy, str(e)) )
-            return strategy_ignore(channel, self.policy) + (False,)
+            return strategy_ignore(channel, self.policy)
 
     def effective_max_htlc_msat(self, channel):
         result = self.policy.getint('max_htlc_msat')
@@ -62,16 +80,34 @@ class StrategyDelegate:
 
 @strategy(name = 'ignore')
 def strategy_ignore(channel, policy, **kwargs):
-    return (None, None, None, None, None, None, None)
+    return ChanParams(
+        base_fee_msat=KEEP,
+        fee_ppm=KEEP,
+        min_htlc_msat=KEEP,
+        max_htlc_msat=KEEP,
+        time_lock_delta=KEEP,
+        inbound_base_fee_msat=KEEP,
+        inbound_fee_ppm=KEEP,
+        disabled=KEEP
+    )
 
 @strategy(name = 'ignore_fees')
 def strategy_ignore_fees(channel, policy, **kwargs):
-    return (None, None, None, None)
+    return ChanParams(
+        base_fee_msat=KEEP,
+        fee_ppm=KEEP,
+        inbound_base_fee_msat=KEEP,
+        inbound_fee_ppm=KEEP
+    )
 
 @strategy(name = 'static')
 def strategy_static(channel, policy, **kwargs):
-    return (policy.getint('base_fee_msat'), policy.getint('fee_ppm'), 
-            policy.getint('inbound_base_fee_msat'), policy.getint('inbound_fee_ppm'))
+    return ChanParams(
+        base_fee_msat=policy.getint('base_fee_msat'),
+        fee_ppm=policy.getint('fee_ppm'),
+        inbound_base_fee_msat=policy.getint('inbound_base_fee_msat'),
+        inbound_fee_ppm=policy.getint('inbound_fee_ppm')
+    )
 
 @strategy(name = 'proportional')
 def strategy_proportional(channel, policy, **kwargs):
@@ -108,7 +144,13 @@ def strategy_proportional(channel, policy, **kwargs):
     ppm = int(ppm_min + (1.0 - ratio) * (ppm_max - ppm_min))
     # clamp to 0..inf
     ppm = max(ppm,0)
-    return (policy.getint('base_fee_msat'), ppm, None, None)
+
+    return ChanParams(
+        base_fee_msat=policy.getint('base_fee_msat'),
+        fee_ppm=ppm,
+        inbound_base_fee_msat=policy.getint('inbound_base_fee_msat'),
+        inbound_fee_ppm=policy.getint('inbound_fee_ppm')
+    )
 
 @strategy(name = 'match_peer')
 def strategy_match_peer(channel, policy, **kwargs):
@@ -116,10 +158,13 @@ def strategy_match_peer(channel, policy, **kwargs):
     chan_info = lnd.get_chan_info(channel.chan_id)
     my_pubkey = lnd.get_own_pubkey()
     peernode_policy = chan_info.node1_policy if chan_info.node2_pub == my_pubkey else chan_info.node2_policy
-    return (policy.getint('base_fee_msat', peernode_policy.fee_base_msat),
-            policy.getint('fee_ppm', peernode_policy.fee_rate_milli_msat),
-            policy.getint('inbound_base_fee_msat', peernode_policy.inbound_fee_base_msat),
-            policy.getint('inbound_fee_ppm', peernode_policy.inbound_fee_rate_milli_msat))
+
+    return ChanParams(
+        base_fee_msat=policy.getint('base_fee_msat', peernode_policy.fee_base_msat),
+        fee_ppm=policy.getint('fee_ppm', peernode_policy.fee_rate_milli_msat),
+        inbound_base_fee_msat=policy.getint('inbound_base_fee_msat', peernode_policy.inbound_fee_base_msat),
+        inbound_fee_ppm=policy.getint('inbound_fee_ppm', peernode_policy.inbound_fee_rate_milli_msat)
+    )
 
 @strategy(name = 'cost')
 def strategy_cost(channel, policy, **kwargs):
@@ -138,7 +183,14 @@ def strategy_cost(channel, policy, **kwargs):
         ppm = int(policy.getfloat('cost_factor', 1.0) * 1_000_000 * chan_open_tx.total_fees / chan_info.capacity)
     else:
         ppm = 1  # tx not found, incoming channel, default to 1
-    return (policy.getint('base_fee_msat'), ppm, None, None)
+
+    return ChanParams(
+        base_fee_msat=policy.getint('base_fee_msat'),
+        fee_ppm=ppm,
+        inbound_base_fee_msat=policy.getint('inbound_base_fee_msat'),
+        inbound_fee_ppm=policy.getint('inbound_fee_ppm')
+    )
+
 
 @strategy(name = 'onchain_fee')
 def strategy_onchain_fee(channel, policy, **kwargs):
@@ -154,7 +206,14 @@ def strategy_onchain_fee(channel, policy, **kwargs):
         return (None, None, None, None, None)
     reference_payment = policy.getfloat('onchain_fee_btc', 0.1)
     fee_ppm = int((0.01 / reference_payment) * (223 * sat_per_byte))
-    return (policy.getint('base_fee_msat'), fee_ppm, None, None)
+
+    return ChanParams(
+        base_fee_msat=policy.getint('base_fee_msat'),
+        fee_ppm=fee_ppm,
+        inbound_base_fee_msat=policy.getint('inbound_base_fee_msat'),
+        inbound_fee_ppm=policy.getint('inbound_fee_ppm')
+    )
+
 
 @strategy(name = 'use_config')
 def strategy_use_config(channel, policy, **kwargs):
@@ -169,7 +228,7 @@ def strategy_use_config(channel, policy, **kwargs):
 
     ext_policy = policies.get_policy_for(channel)
     if not ext_policy:
-        return (None,None)
+        return ChanParams()
 
     r = ext_policy.strategy.execute(channel)
 
@@ -187,4 +246,6 @@ def strategy_disable(channel, policy, **kwargs):
     if not lnd.min_version(0,13):
         raise Exception("Cannot use strategy 'disable', lnd must be at least version 0.13.0")
 
-    return strategy_ignore(channel, policy) + ( True, )
+    chanparams = strategy_ignore(channel, policy)
+    chanparams.disabled=True
+    return chanparams
