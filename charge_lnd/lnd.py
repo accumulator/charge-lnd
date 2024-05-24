@@ -163,9 +163,10 @@ class Lnd:
             min_htlc_msat_specified=chp.min_htlc_msat is not None,
             max_htlc_msat=(chp.max_htlc_msat if chp.max_htlc_msat is not None else my_policy.max_htlc_msat),
             time_lock_delta=(chp.time_lock_delta if chp.time_lock_delta is not None else my_policy.time_lock_delta),
-            inbound_base_fee_msat=(chp.inbound_base_fee_msat if chp.inbound_base_fee_msat is not None else my_policy.inbound_fee_base_msat),
-            inbound_fee_rate_ppm=(chp.inbound_fee_ppm if chp.inbound_fee_ppm is not None else my_policy.inbound_fee_rate_milli_msat)
-        ))
+            inbound_fee=ln.InboundFee(
+            base_fee_msat=(chp.inbound_base_fee_msat if chp.inbound_base_fee_msat is not None else my_policy.inbound_fee_base_msat),
+            fee_rate_ppm=(chp.inbound_fee_ppm if chp.inbound_fee_ppm is not None else my_policy.inbound_fee_rate_milli_msat)
+        )))
 
     def get_txns(self, start_height = None, end_height = None):
         return self.lnstub.GetTransactions(ln.GetTransactionsRequest(
