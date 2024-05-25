@@ -8,6 +8,7 @@ import time
 
 from .grpc_generated import lightning_pb2_grpc as lnrpc, lightning_pb2 as ln
 from .grpc_generated import router_pb2_grpc as routerrpc, router_pb2 as router
+from .grpc_generated import walletkit_pb2_grpc as walletkitrpc, walletkit_pb2 as walletkit
 
 from .strategy import ChanParams, is_defined
 
@@ -30,6 +31,7 @@ class Lnd:
         grpc_channel = grpc.secure_channel(server, combined_credentials, channel_options)
         self.lnstub = lnrpc.LightningStub(grpc_channel)
         self.routerstub = routerrpc.RouterStub(grpc_channel)
+        self.walletstub = walletkitrpc.WalletKitStub(grpc_channel)
         self.graph = None
         self.info = None
         self.version = None
@@ -235,6 +237,11 @@ class Lnd:
                 chan_point=channel_point,
                 action=action
                 ))
+    
+    # returns the onchain fee in sat per vbyte for a given confirmation target
+    def get_fee_estimate(self, numblocks):
+        # numblocks less than 2 are rejected by walletrpc
+        return self.walletstub.EstimateFee(walletkit.EstimateFeeRequest(conf_target=max(numblocks,2))).sat_per_kw * 4 / 1000
 
     @staticmethod
     def hex_string_to_bytes(hex_string):

@@ -11,8 +11,7 @@ See [INSTALL.md](/INSTALL.md)
 charge-lnd takes only a minimal set of parameters:
 
 ```
-usage: charge-lnd [-h] [--lnddir LNDDIR] [--grpc GRPC] [--electrum-server ELECTRUM_SERVER]
-                  [--dry-run] [--check] [-v] -c CONFIG
+usage: charge-lnd [-h] [--lnddir LNDDIR] [--grpc GRPC] [--dry-run] [--check] [-v] -c CONFIG
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -22,9 +21,6 @@ optional arguments:
   --macaroon MACAROON_PATH
                         (default [lnddir]/data/chain/bitcoin/mainnet/charge-lnd.macaroon) path to lnd auth macaroons
   --grpc GRPC           (default localhost:10009) lnd gRPC endpoint
-  --electrum-server ELECTRUM_SERVER
-                        (optional, no default) electrum server host:port . Needed for
-                        onchain_fee.
   --dry-run             Do not perform actions (for testing), print what we would do to
                         stdout
   --check               Do not perform actions, only check config file for valid syntax
@@ -206,7 +202,7 @@ Available strategies:
 |**static** | sets fixed base fee and fee rate values for the outbound and inbound side.| **fee_ppm**<br>**base_fee_msat**<br>**inbound_fee_ppm**<br>**inbound_base_fee_msat**|
 |**match_peer** | sets the same base fee and fee rate values as the peer for the outbound and inbound side.|if **base_fee_msat**, **fee_ppm**, **inbound_base_fee_msat** or **inbound_fee_ppm**  are set the override the peer values|
 |**cost** | calculate cost for opening channel, and set ppm to cover cost when channel depletes.|**cost_factor**|
-|**onchain_fee** | sets the fees to a % equivalent of a standard onchain payment (Requires --electrum-server to be specified.)| **onchain_fee_btc** BTC<br>within **onchain_fee_numblocks** blocks.|
+|**onchain_fee** | sets the fees to a % equivalent of a standard onchain payment. We use lnd's internal fee estimate, which is usually based on bitcoind's fee estimate.| **onchain_fee_btc** BTC<br>within **onchain_fee_numblocks** blocks.|
 |**proportional** | sets outbound fee ppm according to balancedness. Inbound fee ppm keeps unchanged.|**min_fee_ppm**<br>**max_fee_ppm**<br>**sum_peer_chans** consider all channels with peer for balance calculations|
 |**disable** | disables the channel in the outgoing direction. Channel will be re-enabled again if it matches another policy (except when that policy uses an 'ignore' strategy).||
 |**use_config** | process channel according to rules defined in another config file.|**config_file**|

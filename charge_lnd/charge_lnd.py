@@ -11,7 +11,6 @@ from .lnd import Lnd
 from .policy import Policies
 from .strategy import is_defined
 from .config import Config
-from .electrum import Electrum
 import charge_lnd.fmt as fmt
 
 def debug(message):
@@ -20,9 +19,6 @@ def debug(message):
 def main():
     argument_parser = get_argument_parser()
     arguments = argument_parser.parse_args()
-
-    if arguments.electrum_server:
-        Electrum.set_server(arguments.electrum_server)
 
     if not os.path.exists(arguments.config):
         debug("Config file not found")
@@ -166,9 +162,6 @@ def get_argument_parser():
                         default="localhost:10009",
                         dest="grpc",
                         help="(default localhost:10009) lnd gRPC endpoint")
-    parser.add_argument("--electrum-server",
-                        dest="electrum_server",
-                        help="(optional, no default) electrum server host:port[:s]. Needed for onchain_fee. Append ':s' for SSL connection")
     parser.add_argument("--dry-run",
                         dest="dry_run",
                         action="store_true",
