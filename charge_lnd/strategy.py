@@ -7,7 +7,6 @@ from enum import Enum
 
 from . import fmt
 from .config import Config
-from .electrum import Electrum
 
 def debug(message):
     sys.stderr.write(message + "\n")
@@ -194,14 +193,12 @@ def strategy_cost(channel, policy, **kwargs):
 
 @strategy(name = 'onchain_fee')
 def strategy_onchain_fee(channel, policy, **kwargs):
-    if not Electrum.host or not Electrum.port:
-        raise Exception("No electrum server specified, cannot use strategy 'onchain_fee'")
-
+    lnd = kwargs['lnd']
     if policy.getint('min_fee_ppm_delta',-1) < 0:
         policy.set('min_fee_ppm_delta', 10) # set delta to 10 if not defined
 
     numblocks = policy.getint('onchain_fee_numblocks', 6)
-    sat_per_byte = Electrum.get_fee_estimate(numblocks)
+    sat_per_byte = lnd.get_fee_estimate(numblocks)
     if sat_per_byte < 1:
         return (None, None, None, None, None)
     reference_payment = policy.getfloat('onchain_fee_btc', 0.1)
