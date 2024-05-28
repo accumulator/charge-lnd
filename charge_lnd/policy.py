@@ -170,26 +170,17 @@ class Policies:
         # Consider multiple channels per node policies
         if any(map(lambda n: "node." + n in config, multiple_chans_props)):
 
-            shared_chans=self.lnd.get_shared_channels(channel.remote_pubkey)
+            metrics = self.lnd.get_peer_metrics(channel.remote_pubkey)
 
-            local_active_balance = remote_active_balance = active_total = 0
-            local_inactive_balance = remote_inactive_balance = inactive_total = 0
-            channels_active = channels_inactive = 0
-
-            for chan in (shared_chans):
-                if chan.active:
-                    local_active_balance += chan.local_balance
-                    remote_active_balance += chan.remote_balance
-                    channels_active += 1
-                else:
-                    local_inactive_balance += chan.local_balance
-                    remote_inactive_balance += chan.remote_balance
-                    channels_inactive += 1
-
-            active_total = local_active_balance + remote_active_balance
-            inactive_total = local_inactive_balance + remote_inactive_balance
+            channels_active = metrics.channels_active
+            channels_inactive = metrics.channels_inactive
+            
+            local_active_balance = metrics.local_active_balance_total()
+            local_inactive_balance = metrics.local_inactive_balance_total()
+            active_total = metrics.active_balance_total()
+            inactive_total = metrics.inactive_balance_total()
+            
             all_total = active_total + inactive_total
-
             ratio_all = (local_active_balance + local_inactive_balance) / all_total
 
             # Cannot calculate the active ratio if the active total is 0
@@ -284,7 +275,11 @@ class Policies:
         if 'chan.private' in config and not channel.private == config.getboolean('chan.private'):
             return False
 
-        ratio = channel.local_balance/(channel.local_balance + channel.remote_balance)
+        metrics = self.lnd.get_chan_metrics(channel.chan_id)
+        local_balance = metrics.local_balance_total()
+        remote_balance = metrics.remote_balance_total()
+        
+        ratio = local_balance/(local_balance + remote_balance)
         if 'chan.max_ratio' in config and not config.getfloat('chan.max_ratio') >= ratio:
             return False
         if 'chan.min_ratio' in config and not config.getfloat('chan.min_ratio') <= ratio:
@@ -293,13 +288,13 @@ class Policies:
             return False
         if 'chan.min_capacity' in config and not config.getint('chan.min_capacity') <= channel.capacity:
             return False
-        if 'chan.max_local_balance' in config and not config.getint('chan.max_local_balance') >= channel.local_balance:
+        if 'chan.max_local_balance' in config and not config.getint('chan.max_local_balance') >= local_balance:
             return False
-        if 'chan.min_local_balance' in config and not config.getint('chan.min_local_balance') <= channel.local_balance:
+        if 'chan.min_local_balance' in config and not config.getint('chan.min_local_balance') <= local_balance:
             return False
-        if 'chan.max_remote_balance' in config and not config.getint('chan.max_remote_balance') >= channel.remote_balance:
+        if 'chan.max_remote_balance' in config and not config.getint('chan.max_remote_balance') >= remote_balance:
             return False
-        if 'chan.min_remote_balance' in config and not config.getint('chan.min_remote_balance') <= channel.remote_balance:
+        if 'chan.min_remote_balance' in config and not config.getint('chan.min_remote_balance') <= remote_balance:
             return False
 
         chan_info = self.lnd.get_chan_info(channel.chan_id)

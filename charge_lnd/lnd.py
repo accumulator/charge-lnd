@@ -5,6 +5,7 @@ import grpc
 import sys
 import re
 import time
+from types import SimpleNamespace
 
 from .grpc_generated import lightning_pb2_grpc as lnrpc, lightning_pb2 as ln
 from .grpc_generated import router_pb2_grpc as routerrpc, router_pb2 as router
@@ -17,6 +18,81 @@ MESSAGE_SIZE_MB = 50 * 1024 * 1024
 
 def debug(message):
     sys.stderr.write(message + "\n")
+
+
+class ChannelMetrics(SimpleNamespace):
+    local_balance_settled: int = 0
+    local_balance_unsettled: int = 0
+    
+    remote_balance_settled: int = 0
+    remote_balance_unsettled: int = 0
+    
+    def local_balance_total(self):
+        return self.local_balance_settled + self.local_balance_unsettled
+    
+    def remote_balance_total(self):
+        return self.remote_balance_settled + self.remote_balance_unsettled
+
+
+class PeerMetrics(SimpleNamespace):
+    channels_active: int = 0
+    channels_inactive: int = 0
+
+    local_active_balance_settled: int = 0
+    local_active_balance_unsettled: int = 0
+    local_inactive_balance_settled: int = 0
+    local_inactive_balance_unsettled: int = 0
+    
+    remote_active_balance_settled: int = 0
+    remote_active_balance_unsettled: int = 0
+    remote_inactive_balance_settled: int = 0
+    remote_inactive_balance_unsettled: int = 0
+    
+    def local_active_balance_total(self):
+        return self.local_active_balance_settled + self.local_active_balance_unsettled
+    
+    def remote_active_balance_total(self):
+        return self.remote_active_balance_settled + self.remote_active_balance_unsettled
+    
+    def local_inactive_balance_total(self):
+        return self.local_inactive_balance_settled + self.local_inactive_balance_unsettled
+    
+    def remote_inactive_balance_total(self):
+        return self.remote_inactive_balance_settled + self.remote_inactive_balance_unsettled
+    
+    def active_balance_total(self):
+        return self.local_active_balance_total() + self.remote_active_balance_total()
+    
+    def inactive_balance_total(self):
+        return self.local_inactive_balance_total() + self.remote_inactive_balance_total()
+    
+
+def channel_metrics(channel):
+    return ChannelMetrics(
+        local_balance_settled=channel.local_balance,
+        local_balance_unsettled=sum(h.amount for h in channel.pending_htlcs if not h.incoming),
+        remote_balance_settled=channel.remote_balance,
+        remote_balance_unsettled=sum(h.amount for h in channel.pending_htlcs if h.incoming)
+    )
+
+    
+def peer_metrics(channels):
+    pm = PeerMetrics()
+    for channel in channels:
+        cm = channel_metrics(channel)
+        if channel.active:
+            pm.local_active_balance_settled += cm.local_balance_settled
+            pm.local_active_balance_unsettled += cm.local_balance_unsettled
+            pm.remote_active_balance_settled += cm.remote_balance_settled
+            pm.remote_active_balance_unsettled += cm.remote_balance_unsettled
+            pm.channels_active += 1
+        else:
+            pm.local_inactive_balance_settled += cm.local_balance_settled
+            pm.local_inactive_balance_unsettled += cm.local_balance_unsettled
+            pm.remote_inactive_balance_settled += cm.remote_balance_settled
+            pm.remote_inactive_balance_unsettled += cm.remote_balance_unsettled
+            pm.channels_inactive += 1
+    return pm
 
 
 class Lnd:
@@ -41,7 +117,10 @@ class Lnd:
         self.chan_info = {}
         self.fwdhistory = {}
         self.valid = True
+        self.dict_channels = None
         self.peer_channels = {}
+        self.chan_metrics = {}
+        self.peer_metrics = {}
         try:
             self.feereport = self.get_feereport()
         except grpc._channel._InactiveRpcError:
@@ -205,15 +284,31 @@ class Lnd:
             request = ln.ListChannelsRequest()
             self.channels = self.lnstub.ListChannels(request).channels
         return self.channels
-
+    
+    def get_dict_channels(self):
+        if self.dict_channels is None:
+            channels = self.get_channels()
+            self.dict_channels = {}
+            for c in channels:
+                self.dict_channels[c.chan_id] = c
+        return self.dict_channels
+    
+    def get_chan_metrics(self, chanid):
+        if not chanid in self.chan_metrics:
+            self.chan_metrics[chanid] = channel_metrics(self.get_dict_channels()[chanid])
+        return self.chan_metrics[chanid]
+    
     # Get all channels shared with a node
-    def get_shared_channels(self, peerid):
-        # See example: https://github.com/lightningnetwork/lnd/issues/3930#issuecomment-596041700
-        byte_peerid=bytes.fromhex(peerid)
-        if peerid not in self.peer_channels:
-            request = ln.ListChannelsRequest(peer=byte_peerid)
-            self.peer_channels[peerid] = self.lnstub.ListChannels(request).channels
+    def get_peer_channels(self, peerid):
+        if not peerid in self.peer_channels:
+            channels = self.get_channels()
+            self.peer_channels[peerid] = [c for c in channels if c.remote_pubkey == peerid]
         return self.peer_channels[peerid]
+  
+    def get_peer_metrics(self, peerid):
+        if not peerid in self.peer_metrics:
+            self.peer_metrics[peerid] = peer_metrics(self.get_peer_channels(peerid))
+        return self.peer_metrics[peerid]
 
     def min_version(self, major, minor, patch=0):
         p = re.compile("(\d+)\.(\d+)\.(\d+).*")

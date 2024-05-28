@@ -120,6 +120,8 @@ def strategy_static(channel, policy, **kwargs):
 
 @strategy(name = 'proportional')
 def strategy_proportional(channel, policy, **kwargs):
+    lnd = kwargs['lnd']
+    
     if policy.getint('min_fee_ppm_delta',-1) < 0:
         policy.set('min_fee_ppm_delta', 10) # set delta to 10 if not defined
     ppm_min = policy.getint('min_fee_ppm')
@@ -128,27 +130,25 @@ def strategy_proportional(channel, policy, **kwargs):
         raise Exception('proportional strategy requires min_fee_ppm and max_fee_ppm properties')
 
     if policy.getbool('sum_peer_chans', False):
-        lnd = kwargs['lnd']
-        shared_chans=lnd.get_shared_channels(channel.remote_pubkey)
-        local_balance = 0
-        remote_balance = 0
-        for c in (shared_chans):
-            # Include balance of all active channels with peer
-            if c.active:
-                local_balance += c.local_balance
-                remote_balance += c.remote_balance
+        metrics = lnd.get_peer_metrics(channel.remote_pubkey)    
+        
+        local_balance = metrics.local_active_balance_total() 
+        remote_balance = metrics.remote_active_balance_total() 
         total_balance = local_balance + remote_balance
-        if total_balance == 0:
+        
+        if metrics.channels_active == 0:
             # Sum inactive channels because the node is likely offline with no active channels.
             # When they come back online their fees won't be changed.
-            for c in (shared_chans):
-                if not c.active:
-                    local_balance += c.local_balance
-                    remote_balance += c.remote_balance
+            local_balance += metrics.local_inactive_balance_total()
+            remote_balance += metrics.remote_inactive_balance_total()
         total_balance = local_balance + remote_balance
         ratio = local_balance/total_balance
     else:
-        ratio = channel.local_balance/(channel.local_balance + channel.remote_balance)
+        metrics = lnd.get_chan_metrics(channel.chan_id)
+        
+        local_balance = metrics.local_balance_total()
+        remote_balance = metrics.remote_balance_total()
+        ratio = local_balance/(local_balance + remote_balance)
 
     ppm = int(ppm_min + (1.0 - ratio) * (ppm_max - ppm_min))
     # clamp to 0..inf
