@@ -13,6 +13,7 @@ def debug(message):
 
 KEEP='keep'
 DONTCARE='dontcare'
+DEFAULT_CONF_TARGET=6
 
 def is_defined(x):
     return x not in [KEEP, DONTCARE] and x is not None
@@ -197,7 +198,7 @@ def strategy_onchain_fee(channel, policy, **kwargs):
     if policy.getint('min_fee_ppm_delta',-1) < 0:
         policy.set('min_fee_ppm_delta', 10) # set delta to 10 if not defined
 
-    numblocks = policy.getint('onchain_fee_numblocks', 6)
+    numblocks = policy.getint('onchain_fee_numblocks', DEFAULT_CONF_TARGET)
     sat_per_byte = lnd.get_fee_estimate(numblocks)
     if sat_per_byte < 1:
         return (None, None, None, None, None)
