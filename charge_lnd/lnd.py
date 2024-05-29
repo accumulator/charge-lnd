@@ -36,6 +36,7 @@ class Lnd:
         self.graph = None
         self.info = None
         self.version = None
+        self.synced_to_chain = None
         self.channels = None
         self.node_info = {}
         self.chan_info = {}
@@ -69,6 +70,19 @@ class Lnd:
 
     def supports_inbound_fees(self):
         return self.min_version(0, 18)
+    
+    def get_synced_to_chain(self):
+        # It can happen that lnd is not synced to the chain for a few seconds, typically 
+        # after a new block has been found or after a restart of lnd. If lnd is still
+        # not synced to the chain after 5 minutes, we set the parameter to false.        
+        if self.synced_to_chain is None:
+            self.synced_to_chain = False
+            for _ in range(300):
+                if self.lnstub.GetInfo(ln.GetInfoRequest()).synced_to_chain == True:
+                    self.synced_to_chain = True
+                    break
+                time.sleep(1)
+        return self.synced_to_chain
 
     def get_feereport(self):
         feereport = self.lnstub.FeeReport(ln.FeeReportRequest())
