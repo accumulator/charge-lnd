@@ -198,6 +198,7 @@ Currently available properties:
 | **onchain.conf_target** | defines the confirmation target that is used for the determination of the onchain fee rate (default: 6)|# blocks|
 | **onchain.min_fee_rate** | match on the onchain fee rate|# sat per vbyte|
 | **onchain.max_fee_rate** |  match on the onchain fee rate|# sat per vbyte|
+| **onchain.synced_to_chain** |  match on the synced to chain. False if lnd is not synced to chain for 5 minutes.|true\|false|
 
 
 File references should contain 1 item per line

@@ -382,11 +382,15 @@ class Policies:
         return True
     
     def match_by_onchain(self, channel, config):
-        accepted = ['min_fee_rate', 'max_fee_rate', 'conf_target']
+        accepted = ['min_fee_rate', 'max_fee_rate', 
+                    'conf_target', 'synced_to_chain']
         
         for key in config.keys():
             if key.split(".")[0] == 'onchain' and key.split(".")[1] not in accepted:
                 raise Exception("Unknown property '%s'" % key)
+            
+        if 'onchain.synced_to_chain' in config and not config.getboolean('onchain.synced_to_chain') == self.lnd.get_synced_to_chain():
+            return False
             
         fee_rate = self.lnd.get_fee_estimate(config.getint('onchain.conf_target', DEFAULT_CONF_TARGET))
         
