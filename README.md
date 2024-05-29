@@ -193,6 +193,12 @@ Currently available properties:
 | **node.min_shared_ratio_active** | match on active channels ratio with us |0..1|
 | **node.max_shared_ratio_inactive** | match on inactive channels ratio with us|0..1|
 | **node.min_shared_ratio_inactive** | match on inactive channels ratio with us|0..1|
+|||
+|ONCHAIN||
+| **onchain.conf_target** | defines the confirmation target that is used for the determination of the onchain fee rate (default: 6)|# blocks|
+| **onchain.min_fee_rate** | match on the onchain fee rate|# sat per vbyte|
+| **onchain.max_fee_rate** |  match on the onchain fee rate|# sat per vbyte|
+
 
 File references should contain 1 item per line
 ### Strategies

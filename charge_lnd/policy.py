@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import sys
 import re
-from .strategy import StrategyDelegate
+from .strategy import StrategyDelegate, DEFAULT_CONF_TARGET
 from . import fmt
 
 def debug(message):
@@ -108,8 +108,9 @@ class Policies:
 
     def eval_matchers(self, channel, policy, policy_conf):
         map = {
-            'chan'  : self.match_by_chan,
-            'node'  : self.match_by_node
+            'chan'   : self.match_by_chan,
+            'node'   : self.match_by_node,
+            'onchain': self.match_by_onchain
         }
         namespaces = []
         for key in policy_conf.keys():
@@ -378,6 +379,23 @@ class Policies:
             if 'chan.min_sats_ratio' in config and not config.getfloat('chan.min_sats_ratio') <= sats_ratio:
                 return False
 
+        return True
+    
+    def match_by_onchain(self, channel, config):
+        accepted = ['min_fee_rate', 'max_fee_rate', 'conf_target']
+        
+        for key in config.keys():
+            if key.split(".")[0] == 'onchain' and key.split(".")[1] not in accepted:
+                raise Exception("Unknown property '%s'" % key)
+            
+        fee_rate = self.lnd.get_fee_estimate(config.getint('onchain.conf_target', DEFAULT_CONF_TARGET))
+        
+        if 'onchain.max_fee_rate' in config and not config.getfloat('onchain.max_fee_rate') >= fee_rate:
+            return False
+                    
+        if 'onchain.min_fee_rate' in config and not config.getfloat('onchain.min_fee_rate') <= fee_rate:
+            return False
+        
         return True
 
     # simple minutes/hours/days format, e.g. '5m', '3h'
