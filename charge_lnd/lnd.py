@@ -23,15 +23,17 @@ def debug(message):
 class ChannelMetrics(SimpleNamespace):
     local_balance_settled: int = 0
     local_balance_unsettled: int = 0
+    local_commit_fee: int = 0
     
     remote_balance_settled: int = 0
     remote_balance_unsettled: int = 0
+    remote_commit_fee: int = 0
     
     def local_balance_total(self):
-        return self.local_balance_settled + self.local_balance_unsettled
+        return self.local_balance_settled + self.local_balance_unsettled + self.local_commit_fee
     
     def remote_balance_total(self):
-        return self.remote_balance_settled + self.remote_balance_unsettled
+        return self.remote_balance_settled + self.remote_balance_unsettled + self.remote_commit_fee
 
 
 class PeerMetrics(SimpleNamespace):
@@ -40,25 +42,37 @@ class PeerMetrics(SimpleNamespace):
 
     local_active_balance_settled: int = 0
     local_active_balance_unsettled: int = 0
+    local_active_commit_fee: int = 0
     local_inactive_balance_settled: int = 0
     local_inactive_balance_unsettled: int = 0
+    local_inactive_commit_fee: int = 0
     
     remote_active_balance_settled: int = 0
     remote_active_balance_unsettled: int = 0
+    remote_active_commit_fee: int = 0
     remote_inactive_balance_settled: int = 0
     remote_inactive_balance_unsettled: int = 0
+    remote_inactive_commit_fee: int = 0
     
     def local_active_balance_total(self):
-        return self.local_active_balance_settled + self.local_active_balance_unsettled
+        return (self.local_active_balance_settled +
+                self.local_active_balance_unsettled +
+                self.local_active_commit_fee)
     
     def remote_active_balance_total(self):
-        return self.remote_active_balance_settled + self.remote_active_balance_unsettled
+        return (self.remote_active_balance_settled +
+                self.remote_active_balance_unsettled +
+                self.remote_active_commit_fee)
     
     def local_inactive_balance_total(self):
-        return self.local_inactive_balance_settled + self.local_inactive_balance_unsettled
+        return (self.local_inactive_balance_settled +
+                self.local_inactive_balance_unsettled +
+                self.local_inactive_commit_fee)
     
     def remote_inactive_balance_total(self):
-        return self.remote_inactive_balance_settled + self.remote_inactive_balance_unsettled
+        return (self.remote_inactive_balance_settled +
+                self.remote_inactive_balance_unsettled +
+                self.remote_inactive_commit_fee)
     
     def active_balance_total(self):
         return self.local_active_balance_total() + self.remote_active_balance_total()
@@ -67,12 +81,14 @@ class PeerMetrics(SimpleNamespace):
         return self.local_inactive_balance_total() + self.remote_inactive_balance_total()
     
 
-def channel_metrics(channel):
+def channel_metrics(channel):        
     return ChannelMetrics(
         local_balance_settled=channel.local_balance,
         local_balance_unsettled=sum(h.amount for h in channel.pending_htlcs if not h.incoming),
+        local_commit_fee=channel.commit_fee if channel.initiator else 0,
         remote_balance_settled=channel.remote_balance,
-        remote_balance_unsettled=sum(h.amount for h in channel.pending_htlcs if h.incoming)
+        remote_balance_unsettled=sum(h.amount for h in channel.pending_htlcs if h.incoming),
+        remote_commit_fee=channel.commit_fee if not channel.initiator else 0
     )
 
     
@@ -83,14 +99,18 @@ def peer_metrics(channels):
         if channel.active:
             pm.local_active_balance_settled += cm.local_balance_settled
             pm.local_active_balance_unsettled += cm.local_balance_unsettled
+            pm.local_active_commit_fee += cm.local_commit_fee
             pm.remote_active_balance_settled += cm.remote_balance_settled
             pm.remote_active_balance_unsettled += cm.remote_balance_unsettled
+            pm.remote_active_commit_fee += cm.remote_commit_fee
             pm.channels_active += 1
         else:
             pm.local_inactive_balance_settled += cm.local_balance_settled
             pm.local_inactive_balance_unsettled += cm.local_balance_unsettled
+            pm.local_inactive_commit_fee += cm.local_commit_fee
             pm.remote_inactive_balance_settled += cm.remote_balance_settled
             pm.remote_inactive_balance_unsettled += cm.remote_balance_unsettled
+            pm.remote_inactive_commit_fee += cm.remote_commit_fee
             pm.channels_inactive += 1
     return pm
 
