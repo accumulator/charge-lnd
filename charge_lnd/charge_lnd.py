@@ -88,6 +88,13 @@ def main():
             and is_defined(chp.inbound_base_fee_msat) \
             and my_policy.inbound_fee_base_msat != chp.inbound_base_fee_msat
 
+        # We are using the local constraints as a floor for min_htlc and as a cap for max_htlc.
+        # Otherwise, e.g. if min_htlc is too low, lnd cannot perform the whole policy update.
+        if is_defined(chp.min_htlc_msat):
+            chp.min_htlc_msat = max(chp.min_htlc_msat, channel.local_constraints.min_htlc_msat)
+        if is_defined(chp.max_htlc_msat):
+            chp.max_htlc_msat = min(chp.max_htlc_msat, channel.local_constraints.max_pending_amt_msat)
+        
         min_htlc_changed = is_defined(chp.min_htlc_msat) and my_policy.min_htlc != chp.min_htlc_msat
         max_htlc_changed = is_defined(chp.max_htlc_msat) and my_policy.max_htlc_msat != chp.max_htlc_msat
         time_lock_delta_changed = is_defined(chp.time_lock_delta) and my_policy.time_lock_delta != chp.time_lock_delta
