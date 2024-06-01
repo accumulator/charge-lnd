@@ -1,4 +1,3 @@
-import base64
 import os
 from os.path import expanduser
 import codecs
@@ -10,7 +9,7 @@ import time
 from .grpc_generated import lightning_pb2_grpc as lnrpc, lightning_pb2 as ln
 from .grpc_generated import router_pb2_grpc as routerrpc, router_pb2 as router
 
-from .strategy import ChanParams, KEEP, DONTCARE, is_defined
+from .strategy import ChanParams, is_defined
 
 MESSAGE_SIZE_MB = 50 * 1024 * 1024
 

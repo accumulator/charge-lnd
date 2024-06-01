@@ -3,7 +3,6 @@ import sys
 import functools
 from typing import Optional, Union
 from types import SimpleNamespace
-from enum import Enum
 
 from . import fmt
 from .config import Config

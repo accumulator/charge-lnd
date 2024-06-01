@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 import sys
 import re
-import time
-from .strategy import StrategyDelegate, DONTCARE
+from .strategy import StrategyDelegate
 from . import fmt
 
 def debug(message):
