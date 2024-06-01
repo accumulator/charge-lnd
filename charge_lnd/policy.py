@@ -115,7 +115,7 @@ class Policies:
         namespaces = []
         for key in policy_conf.keys():
             keyns = key.split(".")
-            if len(keyns) > 1:
+            if len(keyns) > 1 and keyns[0] not in namespaces:
                 namespaces.append(keyns[0])
 
         matches_policy = True
