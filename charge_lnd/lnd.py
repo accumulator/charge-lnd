@@ -6,6 +6,7 @@ import sys
 import re
 import time
 from types import SimpleNamespace
+from typing import Optional
 
 from .grpc_generated import lightning_pb2_grpc as lnrpc, lightning_pb2 as ln
 from .grpc_generated import router_pb2_grpc as routerrpc, router_pb2 as router
@@ -24,10 +25,13 @@ class ChannelMetrics(SimpleNamespace):
     local_balance_settled: int = 0
     local_balance_unsettled: int = 0
     local_commit_fee: int = 0
-    
+
     remote_balance_settled: int = 0
     remote_balance_unsettled: int = 0
     remote_commit_fee: int = 0
+
+    count_pending_htlcs: int = 0
+    next_pending_htlc_expiry: Optional[int] = None
     
     def local_balance_total(self):
         return self.local_balance_settled + self.local_balance_unsettled + self.local_commit_fee
@@ -88,7 +92,11 @@ def channel_metrics(channel):
         local_commit_fee=channel.commit_fee if channel.initiator else 0,
         remote_balance_settled=channel.remote_balance,
         remote_balance_unsettled=sum(h.amount for h in channel.pending_htlcs if h.incoming),
-        remote_commit_fee=channel.commit_fee if not channel.initiator else 0
+        remote_commit_fee=channel.commit_fee if not channel.initiator else 0,
+        count_pending_htlcs=len(channel.pending_htlcs),
+        next_pending_htlc_expiry=(min([h.expiration_height for h in channel.pending_htlcs])
+                                  if len(channel.pending_htlcs) != 0
+                                  else None)
     )
 
     

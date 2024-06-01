@@ -172,6 +172,10 @@ Currently available properties:
 | **chan.max_htlcs_ratio** | match on amount of HTLCs ratio arriving in channel during activity period|0..1|
 | **chan.min_sats_ratio** | match on amount of sats ratio arriving in channel during activity period|0..1|
 | **chan.max_sats_ratio** | match on amount of sats ratio arriving in channel during activity period|0..1|
+| **chan.min_count_pending_htlcs** | match on the number of pending HTLCs in the channel| # pending htlcs|
+| **chan.max_count_pending_htlcs** | match on the number of pending HTLCs in the channel| # pending htlcs|
+| **chan.min_next_pending_htlc_expiry** | match on the blocks until the next HTLC in the channel expires| # blocks|
+| **chan.max_next_pending_htlc_expiry** | match on the blocks until the next HTLC in the channel expires| # blocks|
 |||
 |NODE||
 | **node.id** | match on node pubkeys - comma separated list of node pubkeys and/or file references|<node pubkey\|file url>[, <node pubkey\|file url>..]|

@@ -235,6 +235,8 @@ class Policies:
         return True
 
     def match_by_chan(self, channel, config):
+        pending_htlcs_props = ['min_next_pending_htlc_expiry', 'max_next_pending_htlc_expiry']
+
         accepted = ['id','initiator','private',
                     'min_ratio','max_ratio',
                     'min_capacity','max_capacity',
@@ -251,8 +253,9 @@ class Policies:
                     'activity_period_ignore_channel_age',
                     'max_htlcs_ratio', 'min_htlcs_ratio',
                     'max_sats_ratio', 'min_sats_ratio',
+                    'min_count_pending_htlcs', 'max_count_pending_htlcs',
                     'disabled'
-                    ]
+                    ] + pending_htlcs_props
         for key in config.keys():
             if key.split(".")[0] == 'chan' and key.split(".")[1] not in accepted:
                 raise Exception("Unknown property '%s'" % key)
@@ -278,7 +281,7 @@ class Policies:
         metrics = self.lnd.get_chan_metrics(channel.chan_id)
         local_balance = metrics.local_balance_total()
         remote_balance = metrics.remote_balance_total()
-        
+
         ratio = local_balance/(local_balance + remote_balance)
         if 'chan.max_ratio' in config and not config.getfloat('chan.max_ratio') >= ratio:
             return False
@@ -372,6 +375,27 @@ class Policies:
             if 'chan.max_sats_ratio' in config and not config.getfloat('chan.max_sats_ratio') >= sats_ratio:
                 return False
             if 'chan.min_sats_ratio' in config and not config.getfloat('chan.min_sats_ratio') <= sats_ratio:
+                return False
+
+        if ('chan.min_count_pending_htlcs' in config and not
+                config.getint('chan.min_count_pending_htlcs') <= metrics.count_pending_htlcs):
+            return False
+        if ('chan.max_count_pending_htlcs' in config and not
+                config.getint('chan.max_count_pending_htlcs') >= metrics.count_pending_htlcs):
+            return False
+
+
+        if any(map(lambda n: "chan." + n in config, pending_htlcs_props)):
+            if metrics.count_pending_htlcs == 0:
+                return False
+
+            next_expiry = metrics.next_pending_htlc_expiry - info.block_height
+
+            if ('chan.min_next_pending_htlc_expiry' in config and not
+                    config.getint('chan.min_next_pending_htlc_expiry') <= next_expiry):
+                return False
+            if ('chan.max_next_pending_htlc_expiry' in config and not
+                    config.getint('chan.max_next_pending_htlc_expiry') >= next_expiry):
                 return False
 
         return True
