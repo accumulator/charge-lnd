@@ -11,6 +11,7 @@ from .lnd import Lnd
 from .policy import Policies
 from .strategy import is_defined
 from .config import Config
+from .circuitbreaker import Circuitbreaker
 import charge_lnd.fmt as fmt
 
 def debug(message):
@@ -35,8 +36,18 @@ def main():
 
     lnd = Lnd(arguments.lnddir, arguments.grpc, arguments.tls_cert_path, arguments.macaroon_path)
     if not lnd.valid:
-        debug("Could not connect to gRPC endpoint")
+        debug("Could not connect to lnd gRPC endpoint")
         return False
+
+    cb = None
+    if arguments.circuitbreaker:
+        cb = Circuitbreaker(arguments.circuitbreaker)
+        if not cb.valid:
+            debug("Could not connect to circuitbreaker gRPC endpoint")
+            return False
+        if cb.get_info().node_key != lnd.get_info().identity_pubkey:
+            debug("node_key of circuitbreaker is different from pubkey of lnd")
+            return False
 
     policies = Policies(lnd, config)
 
@@ -49,6 +60,9 @@ def main():
             continue
 
         chp = policy.strategy.execute(channel)
+
+        if cb and is_defined(chp.circuitbreaker_params):
+            cb.apply_params(chp.circuitbreaker_params, channel.remote_pubkey)
 
         if channel.chan_id in lnd.feereport:
             (current_base_fee_msat, current_fee_ppm) = lnd.feereport[channel.chan_id]
@@ -144,7 +158,72 @@ def main():
                     s = ' ➜ ' + fmt.col_hi(chp.time_lock_delta)
                 print("  time_lock_delta:         %s%s" % (fmt.col_hi(my_policy.time_lock_delta), s) )
 
+    if cb:
+         update_circuitbreaker(cb, lnd, arguments)
+
     return True
+
+# Updates the circuitbreaker backend with all necessary limit changes.
+def update_circuitbreaker(cb: Circuitbreaker, lnd: Lnd, arguments):
+    clear_limits, update_limits = cb.get_limit_updates()
+
+    # The for loop is only for printing the changes to the current state.
+    for peer in clear_limits + list(update_limits.keys()):
+        limit_current = cb.get_limit(peer)
+
+        is_deleted = peer in clear_limits and limit_current is not None
+        is_new = peer in update_limits and limit_current is None
+
+        is_update_candidate = peer in update_limits and limit_current is not None
+        is_updated = False
+        if is_update_candidate:
+            is_updated_rate = update_limits[peer].max_hourly_rate != limit_current.max_hourly_rate
+            is_updated_pending = update_limits[peer].max_pending != limit_current.max_pending
+            is_updated_mode = update_limits[peer].mode != limit_current.mode
+            is_updated = any([is_updated_rate, is_updated_pending, is_updated_mode])
+
+        is_changed = any([is_deleted, is_new, is_updated])
+
+        if is_changed or (is_update_candidate and arguments.verbose):
+            print(fmt.print_node(lnd.get_node_info(peer)))
+            print("  service:                 circuitbreaker")
+
+        if is_deleted:
+            s = ' ➜ ' + fmt.col_hi("default")
+            print("  max_hourly_rate:         %s%s" % (fmt.col_hi(limit_current.max_hourly_rate), s) )
+            print("  max_pending:             %s%s" % (fmt.col_hi(limit_current.max_pending), s) )
+            print("  mode:                    %s%s" % (fmt.col_hi(limit_current.mode), s) )
+
+        if is_new:
+            s = fmt.col_hi("default") + ' ➜ '
+            print("  max_hourly_rate:         %s%s" % (s, fmt.col_hi(update_limits[peer].max_hourly_rate)) )
+            print("  max_pending:             %s%s" % (s, fmt.col_hi(update_limits[peer].max_pending)) )
+            print("  mode:                    %s%s" % (s, fmt.col_hi(update_limits[peer].mode)) )
+
+        if is_updated or (is_update_candidate and arguments.verbose):
+            if is_updated_rate or arguments.verbose:
+                s = ''
+                if is_updated_rate:
+                    s = ' ➜ ' + fmt.col_hi(update_limits[peer].max_hourly_rate)
+                print("  max_hourly_rate:         %s%s" % (fmt.col_hi(limit_current.max_hourly_rate), s) )
+
+            if is_updated_pending or arguments.verbose:
+                s = ''
+                if is_updated_pending:
+                    s = ' ➜ ' + fmt.col_hi(update_limits[peer].max_pending)
+                print("  max_pending:             %s%s" % (fmt.col_hi(limit_current.max_pending), s) )
+
+            if is_updated_mode or arguments.verbose:
+                s = ''
+                if is_updated_mode:
+                    s = ' ➜ ' + fmt.col_hi(update_limits[peer].mode)
+                print("  mode:                    %s%s" % (fmt.col_hi(limit_current.mode), s) )
+
+    # Eventually, we are updating the circuitbreaker backend.
+    if not arguments.dry_run:
+        cb.clear_limits(clear_limits)
+        cb.update_limits(update_limits)
+
 
 def get_argument_parser():
     parser = argparse.ArgumentParser()
@@ -162,6 +241,9 @@ def get_argument_parser():
                         default="localhost:10009",
                         dest="grpc",
                         help="(default localhost:10009) lnd gRPC endpoint")
+    parser.add_argument("--circuitbreaker",
+                        dest="circuitbreaker",
+                        help="(optional, no default) circuitbreaker gRPC endpoint host:port")
     parser.add_argument("--dry-run",
                         dest="dry_run",
                         action="store_true",

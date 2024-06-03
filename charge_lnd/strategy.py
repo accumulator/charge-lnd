@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 from . import fmt
 from .config import Config
+from .circuitbreaker import CircuitbreakerParams
 
 def debug(message):
     sys.stderr.write(message + "\n")
@@ -25,6 +26,7 @@ class ChanParams(SimpleNamespace):
     inbound_base_fee_msat: Optional[Union[str, int]] = DONTCARE
     inbound_fee_ppm: Optional[Union[str, int]] = DONTCARE
     disabled: Optional[Union[str, bool]] = DONTCARE
+    circuitbreaker_params: Optional[Union[str, CircuitbreakerParams]] = DONTCARE
 
 def strategy(_func=None,*,name):
     def register_strategy(func):
@@ -56,6 +58,13 @@ class StrategyDelegate:
                 result.time_lock_delta = self.policy.getint('time_lock_delta')
             if result.disabled == DONTCARE:
                 result.disabled = False
+            if result.circuitbreaker_params == DONTCARE:
+                result.circuitbreaker_params = CircuitbreakerParams(
+                    max_hourly_rate=self.policy.getint('cb_max_hourly_rate'),
+                    max_pending=self.policy.getint('cb_max_pending'),
+                    mode=self.policy.getint('cb_mode'),
+                    clear_limit=self.policy.getbool('cb_clear_limit')
+                )
 
             return result
         except Exception as e:
@@ -86,7 +95,8 @@ def strategy_ignore(channel, policy, **kwargs):
         time_lock_delta=KEEP,
         inbound_base_fee_msat=KEEP,
         inbound_fee_ppm=KEEP,
-        disabled=KEEP
+        disabled=KEEP,
+        circuitbreaker_params=KEEP
     )
 
 @strategy(name = 'ignore_fees')
@@ -244,4 +254,6 @@ def strategy_disable(channel, policy, **kwargs):
 
     chanparams = strategy_ignore(channel, policy)
     chanparams.disabled=True
+    # We want to allow changes to the Circuitbreaker params, such as blocking incoming htlcs.
+    chanparams.circuitbreaker_params = DONTCARE
     return chanparams

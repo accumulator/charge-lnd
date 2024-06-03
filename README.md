@@ -11,7 +11,8 @@ See [INSTALL.md](/INSTALL.md)
 charge-lnd takes only a minimal set of parameters:
 
 ```
-usage: charge-lnd [-h] [--lnddir LNDDIR] [--grpc GRPC] [--dry-run] [--check] [-v] -c CONFIG
+usage: charge-lnd [-h] [--lnddir LNDDIR] [--tlscert TLS_CERT_PATH] [--macaroon MACAROON_PATH] [--grpc GRPC]
+                  [--circuitbreaker CIRCUITBREAKER] [--dry-run] [--check] [-v] -c CONFIG
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -21,6 +22,8 @@ optional arguments:
   --macaroon MACAROON_PATH
                         (default [lnddir]/data/chain/bitcoin/mainnet/charge-lnd.macaroon) path to lnd auth macaroons
   --grpc GRPC           (default localhost:10009) lnd gRPC endpoint
+  --circuitbreaker CIRCUITBREAKER
+                        (optional, no default) circuitbreaker gRPC endpoint host:port
   --dry-run             Do not perform actions (for testing), print what we would do to
                         stdout
   --check               Do not perform actions, only check config file for valid syntax
@@ -217,7 +220,24 @@ All strategies (except the ignore strategy) will apply the following properties 
 | **max_htlc_msat_ratio** | Maximum size of HTLC to allow as a fraction of total channel capacity | 0..1 |
 | **time_lock_delta** | Time Lock Delta | # blocks |
 | **min_fee_ppm_delta** | Minimum change in fees (ppm) before updating channel | ppm delta |
+| **cb_max_hourly_rate** | Circuitbreaker: maximum number of incoming htlcs per hour | # hourly rate |
+| **cb_max_pending** | Circuitbreaker: maximum number of incoming htlcs at the same time | # incoming pending htlcs |
+| **cb_mode** | Circuitbreaker: mode (0 - FAIL; 1 - QUEUE; 2 - QUEUE_PEER_INITIATED; 3 - BLOCK) | 0..3 |
+| **cb_clear_limit** | Circuitbreaker: delete the peer limit and fallback to the default limit | true |
 
+### Circuitbreaker Support
+Optionally, it is also possible to dynamically control the [circuitbreaker](https://github.com/lightningequipment/circuitbreaker) limits for individual peers. However, the default limit of the circuitbreaker cannot currently be changed with `charge-lnd`.
+
+### One channel for the peer
+
+If any of the properties `cb_max_hourly_rate`, `cb_max_pending`, or `cb_mode` are set, the node limit will be adjusted. It should be noted that 0 for the first two properties is interpreted as infinite. Those properties that are not currently set will be set according to the respective default limits. If no node limit is to be set, but a limit has already been set, the reset to the default limit can be performed by setting `cb_clear_limit`.
+
+### Multiple channels for the peer
+
+It can happen that different properties for individual channels are chosen when there are multiple channels with one peer. Since the circuitbreaker monitors its limits at the peer level, we aggregate the properties into a node limit:
+- `cb_max_hourly_rate` and `cb_max_pending` are added, considering that 0 corresponds to infinite.
+- `cb_mode` is set to the most conservative mode, i.e., the first mode from the following list is used: `MODE_BLOCK`, `MODE_FAIL`, `MODE_QUEUE`, `MODE_QUEUE_PEER_INITIATED`.
+- The node limit will be deleted if `cb_clear_limit` is set for a channel.
 
 ## Contributing
 
