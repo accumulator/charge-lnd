@@ -79,14 +79,32 @@ def main():
         fee_ppm_changed = is_defined(chp.fee_ppm) and current_fee_ppm != chp.fee_ppm and abs(current_fee_ppm - chp.fee_ppm) >= min_fee_ppm_delta
         base_fee_changed = is_defined(chp.base_fee_msat) and current_base_fee_msat != chp.base_fee_msat
 
-        inbound_fee_ppm_changed = lnd.supports_inbound_fees() \
-            and is_defined(chp.inbound_fee_ppm) \
-            and my_policy.inbound_fee_rate_milli_msat != chp.inbound_fee_ppm \
-            and abs(my_policy.inbound_fee_rate_milli_msat - chp.inbound_fee_ppm) >= min_fee_ppm_delta
+        min_inbound_fee_ppm_delta = policy.getint('min_inbound_fee_ppm_delta', min_fee_ppm_delta)
+        inbound_fee_ppm_changed = inbound_base_fee_changed = False
+        if lnd.supports_inbound_fees():
+            # If there is any definied inbound_level we recalculate the inbound fee rate.
+            if is_defined(chp.inbound_level_ppm):
+                chp.inbound_fee_ppm = min(0,
+                    chp.inbound_level_ppm - (chp.fee_ppm if fee_ppm_changed else current_fee_ppm))
 
-        inbound_base_fee_changed = lnd.supports_inbound_fees() \
-            and is_defined(chp.inbound_base_fee_msat) \
-            and my_policy.inbound_fee_base_msat != chp.inbound_base_fee_msat
+            # We'd like to avoid updating the inbound fee rate if the change is lower than the min delta,
+            # even in the case other outbound properties have changed.
+            # The goal is to minimize the gossip around the inbound fees, because at the moment there
+            # are no updates for the incoming channel in the case of a FeeInsuffient error.
+            # (https://github.com/lightningnetwork/lnd/pull/6967)
+            # First we check if the base fee changed. In this case we will advance the inbound
+            # fee anyway.
+            inbound_base_fee_changed = is_defined(chp.inbound_base_fee_msat) \
+                and my_policy.inbound_fee_base_msat != chp.inbound_base_fee_msat
+
+            if is_defined(chp.inbound_fee_ppm) \
+                and not inbound_base_fee_changed \
+                and abs(my_policy.inbound_fee_rate_milli_msat - chp.inbound_fee_ppm) < min_inbound_fee_ppm_delta:
+
+                chp.inbound_fee_ppm = my_policy.inbound_fee_rate_milli_msat
+
+            inbound_fee_ppm_changed = is_defined(chp.inbound_fee_ppm) \
+                and my_policy.inbound_fee_rate_milli_msat != chp.inbound_fee_ppm
 
         # We are using the local constraints as a floor for min_htlc and as a cap for max_htlc.
         # Otherwise, e.g. if min_htlc is too low, lnd cannot perform the whole policy update.
@@ -94,7 +112,7 @@ def main():
             chp.min_htlc_msat = max(chp.min_htlc_msat, channel.local_constraints.min_htlc_msat)
         if is_defined(chp.max_htlc_msat):
             chp.max_htlc_msat = min(chp.max_htlc_msat, channel.local_constraints.max_pending_amt_msat)
-        
+
         min_htlc_changed = is_defined(chp.min_htlc_msat) and my_policy.min_htlc != chp.min_htlc_msat
         max_htlc_changed = is_defined(chp.max_htlc_msat) and my_policy.max_htlc_msat != chp.max_htlc_msat
         time_lock_delta_changed = is_defined(chp.time_lock_delta) and my_policy.time_lock_delta != chp.time_lock_delta
@@ -146,8 +164,8 @@ def main():
                 s = ''
                 if inbound_fee_ppm_changed:
                     s = ' ➜ ' + fmt.col_hi(chp.inbound_fee_ppm)
-                    if min_fee_ppm_delta > abs(chp.inbound_fee_ppm - my_policy.inbound_fee_rate_milli_msat):
-                        s = s + ' (min_fee_ppm_delta=%d)' % min_fee_ppm_delta
+                    if min_inbound_fee_ppm_delta > abs(chp.inbound_fee_ppm - my_policy.inbound_fee_rate_milli_msat):
+                        s = s + ' (min_inbound_fee_ppm_delta=%d)' % min_inbound_fee_ppm_delta
                 print("  inbound_fee_ppm:         %s%s" % (fmt.col_hi(my_policy.inbound_fee_rate_milli_msat), s) )
             if is_defined(chp.min_htlc_msat) or arguments.verbose:
                 s = ''

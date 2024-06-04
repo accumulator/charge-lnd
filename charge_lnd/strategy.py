@@ -26,6 +26,7 @@ class ChanParams(SimpleNamespace):
     time_lock_delta: Optional[Union[str, int]] = DONTCARE
     inbound_base_fee_msat: Optional[Union[str, int]] = DONTCARE
     inbound_fee_ppm: Optional[Union[str, int]] = DONTCARE
+    inbound_level_ppm: Optional[Union[str, int]] = DONTCARE
     disabled: Optional[Union[str, bool]] = DONTCARE
     circuitbreaker_params: Optional[Union[str, CircuitbreakerParams]] = DONTCARE
 
@@ -115,7 +116,8 @@ def strategy_static(channel, policy, **kwargs):
         base_fee_msat=policy.getint('base_fee_msat'),
         fee_ppm=policy.getint('fee_ppm'),
         inbound_base_fee_msat=policy.getint('inbound_base_fee_msat'),
-        inbound_fee_ppm=policy.getint('inbound_fee_ppm')
+        inbound_fee_ppm=policy.getint('inbound_fee_ppm'),
+        inbound_level_ppm=policy.getint('inbound_level_ppm'),
     )
 
 @strategy(name = 'proportional')
@@ -158,7 +160,8 @@ def strategy_proportional(channel, policy, **kwargs):
         base_fee_msat=policy.getint('base_fee_msat'),
         fee_ppm=ppm,
         inbound_base_fee_msat=policy.getint('inbound_base_fee_msat'),
-        inbound_fee_ppm=policy.getint('inbound_fee_ppm')
+        inbound_fee_ppm=policy.getint('inbound_fee_ppm'),
+        inbound_level_ppm=policy.getint('inbound_level_ppm'),
     )
 
 @strategy(name = 'match_peer')
@@ -197,7 +200,8 @@ def strategy_cost(channel, policy, **kwargs):
         base_fee_msat=policy.getint('base_fee_msat'),
         fee_ppm=ppm,
         inbound_base_fee_msat=policy.getint('inbound_base_fee_msat'),
-        inbound_fee_ppm=policy.getint('inbound_fee_ppm')
+        inbound_fee_ppm=policy.getint('inbound_fee_ppm'),
+        inbound_level_ppm=policy.getint('inbound_level_ppm'),
     )
 
 
@@ -218,7 +222,8 @@ def strategy_onchain_fee(channel, policy, **kwargs):
         base_fee_msat=policy.getint('base_fee_msat'),
         fee_ppm=fee_ppm,
         inbound_base_fee_msat=policy.getint('inbound_base_fee_msat'),
-        inbound_fee_ppm=policy.getint('inbound_fee_ppm')
+        inbound_fee_ppm=policy.getint('inbound_fee_ppm'),
+        inbound_level_ppm=policy.getint('inbound_level_ppm'),
     )
 
 

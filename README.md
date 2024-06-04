@@ -213,11 +213,11 @@ Available strategies:
 |:--|:--|:--|
 |**ignore** | ignores the channel completely||
 |**ignore_fees** | don't make any fee changes, only update htlc size limits and time_lock_delta||
-|**static** | sets fixed base fee and fee rate values for the outbound and inbound side.| **fee_ppm**<br>**base_fee_msat**<br>**inbound_fee_ppm**<br>**inbound_base_fee_msat**|
+|**static** | sets fixed base fee and fee rate values for the outbound and inbound side.| **fee_ppm**<br>**base_fee_msat**<br>**inbound_fee_ppm**<br>**inbound_base_fee_msat**<br>**inbound_level_ppm** if set we calculate `inbound_fee_ppm = min(0,inbound_level_ppm - fee_ppm)`|
 |**match_peer** | sets the same base fee and fee rate values as the peer for the outbound and inbound side.|if **base_fee_msat**, **fee_ppm**, **inbound_base_fee_msat** or **inbound_fee_ppm**  are set the override the peer values|
 |**cost** | calculate cost for opening channel, and set ppm to cover cost when channel depletes.|**cost_factor**|
 |**onchain_fee** | sets the fees to a % equivalent of a standard onchain payment. We use lnd's internal fee estimate, which is usually based on bitcoind's fee estimate.| **onchain_fee_btc** BTC<br>within **onchain_fee_numblocks** blocks.|
-|**proportional** | sets outbound fee ppm according to balancedness. Inbound fee ppm keeps unchanged.|**min_fee_ppm**<br>**max_fee_ppm**<br>**sum_peer_chans** consider all channels with peer for balance calculations|
+|**proportional** | sets outbound fee ppm according to balancedness. Inbound Fees are set like using strategy **static**.|**min_fee_ppm**<br>**max_fee_ppm**<br>**sum_peer_chans** consider all channels with peer for balance calculations|
 |**disable** | disables the channel in the outgoing direction. Channel will be re-enabled again if it matches another policy (except when that policy uses an 'ignore' strategy).||
 |**use_config** | process channel according to rules defined in another config file.|**config_file**|
 
@@ -230,7 +230,8 @@ All strategies (except the ignore strategy) will apply the following properties 
 | **max_htlc_msat** | Maximum size (in msat) of HTLC to allow | # msat |
 | **max_htlc_msat_ratio** | Maximum size of HTLC to allow as a fraction of total channel capacity | 0..1 |
 | **time_lock_delta** | Time Lock Delta | # blocks |
-| **min_fee_ppm_delta** | Minimum change in fees (ppm) before updating channel | ppm delta |
+| **min_fee_ppm_delta** | Minimum change in fees (ppm) before updating channel (default: 0) | ppm delta |
+| **min_inbound_fee_ppm_delta** | Minimum change in inbound fees (ppm) before updating channel (default: min_fee_ppm_delta) | ppm delta |
 | **cb_max_hourly_rate** | Circuitbreaker: maximum number of incoming htlcs per hour | # hourly rate |
 | **cb_max_pending** | Circuitbreaker: maximum number of incoming htlcs at the same time | # incoming pending htlcs |
 | **cb_mode** | Circuitbreaker: mode (0 - FAIL; 1 - QUEUE; 2 - QUEUE_PEER_INITIATED; 3 - BLOCK) | 0..3 |
