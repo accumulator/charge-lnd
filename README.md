@@ -12,7 +12,7 @@ charge-lnd takes only a minimal set of parameters:
 
 ```
 usage: charge-lnd [-h] [--lnddir LNDDIR] [--tlscert TLS_CERT_PATH] [--macaroon MACAROON_PATH] [--grpc GRPC]
-                  [--circuitbreaker CIRCUITBREAKER] [--dry-run] [--check] [-v] -c CONFIG
+                  [--circuitbreaker CIRCUITBREAKER] [--dry-run] [--check] [-v] [-vv] -c CONFIG
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -28,6 +28,7 @@ optional arguments:
                         stdout
   --check               Do not perform actions, only check config file for valid syntax
   -v, --verbose         Be more verbose
+  -vv, --very-verbose   Be very verbose, print every matched policy
   -c CONFIG, --config CONFIG
                         path to config file
 ```

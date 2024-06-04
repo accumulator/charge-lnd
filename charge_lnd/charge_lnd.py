@@ -21,6 +21,9 @@ def main():
     argument_parser = get_argument_parser()
     arguments = argument_parser.parse_args()
 
+    if arguments.very_verbose:
+        arguments.verbose = True
+
     if not os.path.exists(arguments.config):
         debug("Config file not found")
         return False
@@ -183,6 +186,23 @@ def main():
                     s = ' ➜ ' + fmt.col_hi(chp.time_lock_delta)
                 print("  time_lock_delta:         %s%s" % (fmt.col_hi(my_policy.time_lock_delta), s) )
 
+        if arguments.very_verbose:
+            fix = 40
+            print(fmt.col_hi('  ' + '-' * (fix + 34)))
+
+            for match in policy.log:
+                print("      %s%s" % (fmt.fix_str('policy_name', fix), fmt.col_hi(match.pop('policy_name'))))
+                if "strategy" in match:
+                    print("      %s%s" % (fmt.fix_str('strategy', fix), fmt.col_hi(match.pop('strategy')[1])))
+
+                for k, v in match.items():
+                    s = ''
+                    if v[0]:
+                        s = fmt.col_hi(v[0]) + ' ➜ '
+                    print("      %s%s%s" % (fmt.fix_str(k, fix), s, fmt.col_hi(v[1])))
+
+                print(fmt.col_hi('      ' + '-' * (fix + 30)))
+
     if cb:
          update_circuitbreaker(cb, lnd, arguments)
 
@@ -280,6 +300,9 @@ def get_argument_parser():
     parser.add_argument("-v", "--verbose",
                         action="store_true",
                         help="Be more verbose")
+    parser.add_argument("-vv", "--very-verbose",
+                        action="store_true",
+                        help="Be very verbose, print every matched policy")
     parser.add_argument("-c", "--config",
                         required=True,
                         help="path to config file")

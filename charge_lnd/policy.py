@@ -44,11 +44,18 @@ class Policy:
         self.strategy = None
         self.name = None
         self.config = {}
+        self.log = []
 
     def apply(self, policy_name, policy_config):
+        config_ref = self.config.copy()
+        log = {}
+        self.log.append(log)
+        log['policy_name'] = policy_name
+
         # mask over the collected config
         for k,v in policy_config.items():
             self.config[k] = v
+            log[k] = [config_ref.get(k), v]
 
         strategy = policy_config.get('strategy')
         if strategy: # final policy
