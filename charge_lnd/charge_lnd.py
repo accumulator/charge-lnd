@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import grpc
 import sys
 import os
 
@@ -135,7 +136,13 @@ def main():
                 )
 
         if is_changed and not arguments.dry_run:
-            lnd.update_chan_policy(channel.chan_id, chp)
+            try:
+                res = lnd.update_chan_policy(channel.chan_id, chp)
+                for f in res.failed_updates:
+                    print("  failure_reason:          %s" % fmt.col_err(lnd.update_failure_name(f.reason)) )
+                    print("  update_error:            %s" % fmt.col_err(f.update_error) )
+            except grpc.RpcError as rpc_err:
+                print_rpc_error(rpc_err)
 
         if is_changed or chan_status_changed or arguments.verbose:
             print("  policy:                  %s" % fmt.col_hi(policy.name) )
@@ -266,9 +273,20 @@ def update_circuitbreaker(cb: Circuitbreaker, lnd: Lnd, arguments):
 
     # Eventually, we are updating the circuitbreaker backend.
     if not arguments.dry_run:
-        cb.clear_limits(clear_limits)
-        cb.update_limits(update_limits)
+        try:
+            cb.clear_limits(clear_limits)
+        except grpc.RpcError as rpc_err:
+            print_rpc_error(rpc_err)
 
+        try:
+            cb.update_limits(update_limits)
+        except grpc.RpcError as rpc_err:
+            print_rpc_error(rpc_err)
+
+def print_rpc_error(rpc_err):
+    if rpc_err:
+        print("  rpc_error_status:        %s" % fmt.col_err(rpc_err.code()) )
+        print("  rpc_error_details:       %s" % fmt.col_err(rpc_err.details()) )
 
 def get_argument_parser():
     parser = argparse.ArgumentParser()

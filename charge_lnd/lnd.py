@@ -268,6 +268,10 @@ class Lnd:
                 return None
         return self.chan_info[chanid]
 
+    @staticmethod
+    def update_failure_name(code):
+        return ln.UpdateFailure.Name(code)
+
     def update_chan_policy(self, chanid, chp: ChanParams):
         chan_info = self.get_chan_info(chanid)
         if not chan_info:
