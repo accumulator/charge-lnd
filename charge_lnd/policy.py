@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 import sys
 import re
-import time
-from .strategy import StrategyDelegate, DONTCARE
+from .strategy import StrategyDelegate, DEFAULT_CONF_TARGET
 from . import fmt
 
 def debug(message):
@@ -45,11 +44,18 @@ class Policy:
         self.strategy = None
         self.name = None
         self.config = {}
+        self.log = []
 
     def apply(self, policy_name, policy_config):
+        config_ref = self.config.copy()
+        log = {}
+        self.log.append(log)
+        log['policy_name'] = policy_name
+
         # mask over the collected config
         for k,v in policy_config.items():
             self.config[k] = v
+            log[k] = [config_ref.get(k), v]
 
         strategy = policy_config.get('strategy')
         if strategy: # final policy
@@ -109,13 +115,14 @@ class Policies:
 
     def eval_matchers(self, channel, policy, policy_conf):
         map = {
-            'chan'  : self.match_by_chan,
-            'node'  : self.match_by_node
+            'chan'   : self.match_by_chan,
+            'node'   : self.match_by_node,
+            'onchain': self.match_by_onchain
         }
         namespaces = []
         for key in policy_conf.keys():
             keyns = key.split(".")
-            if len(keyns) > 1:
+            if len(keyns) > 1 and keyns[0] not in namespaces:
                 namespaces.append(keyns[0])
 
         matches_policy = True
@@ -170,26 +177,17 @@ class Policies:
         # Consider multiple channels per node policies
         if any(map(lambda n: "node." + n in config, multiple_chans_props)):
 
-            shared_chans=self.lnd.get_shared_channels(channel.remote_pubkey)
+            metrics = self.lnd.get_peer_metrics(channel.remote_pubkey)
 
-            local_active_balance = remote_active_balance = active_total = 0
-            local_inactive_balance = remote_inactive_balance = inactive_total = 0
-            channels_active = channels_inactive = 0
-
-            for chan in (shared_chans):
-                if chan.active:
-                    local_active_balance += chan.local_balance
-                    remote_active_balance += chan.remote_balance
-                    channels_active += 1
-                else:
-                    local_inactive_balance += chan.local_balance
-                    remote_inactive_balance += chan.remote_balance
-                    channels_inactive += 1
-
-            active_total = local_active_balance + remote_active_balance
-            inactive_total = local_inactive_balance + remote_inactive_balance
+            channels_active = metrics.channels_active
+            channels_inactive = metrics.channels_inactive
+            
+            local_active_balance = metrics.local_active_balance_total()
+            local_inactive_balance = metrics.local_inactive_balance_total()
+            active_total = metrics.active_balance_total()
+            inactive_total = metrics.inactive_balance_total()
+            
             all_total = active_total + inactive_total
-
             ratio_all = (local_active_balance + local_inactive_balance) / all_total
 
             # Cannot calculate the active ratio if the active total is 0
@@ -244,6 +242,8 @@ class Policies:
         return True
 
     def match_by_chan(self, channel, config):
+        pending_htlcs_props = ['min_next_pending_htlc_expiry', 'max_next_pending_htlc_expiry']
+
         accepted = ['id','initiator','private',
                     'min_ratio','max_ratio',
                     'min_capacity','max_capacity',
@@ -260,8 +260,9 @@ class Policies:
                     'activity_period_ignore_channel_age',
                     'max_htlcs_ratio', 'min_htlcs_ratio',
                     'max_sats_ratio', 'min_sats_ratio',
+                    'min_count_pending_htlcs', 'max_count_pending_htlcs',
                     'disabled'
-                    ]
+                    ] + pending_htlcs_props
         for key in config.keys():
             if key.split(".")[0] == 'chan' and key.split(".")[1] not in accepted:
                 raise Exception("Unknown property '%s'" % key)
@@ -284,7 +285,11 @@ class Policies:
         if 'chan.private' in config and not channel.private == config.getboolean('chan.private'):
             return False
 
-        ratio = channel.local_balance/(channel.local_balance + channel.remote_balance)
+        metrics = self.lnd.get_chan_metrics(channel.chan_id)
+        local_balance = metrics.local_balance_total()
+        remote_balance = metrics.remote_balance_total()
+
+        ratio = local_balance/(local_balance + remote_balance)
         if 'chan.max_ratio' in config and not config.getfloat('chan.max_ratio') >= ratio:
             return False
         if 'chan.min_ratio' in config and not config.getfloat('chan.min_ratio') <= ratio:
@@ -293,13 +298,13 @@ class Policies:
             return False
         if 'chan.min_capacity' in config and not config.getint('chan.min_capacity') <= channel.capacity:
             return False
-        if 'chan.max_local_balance' in config and not config.getint('chan.max_local_balance') >= channel.local_balance:
+        if 'chan.max_local_balance' in config and not config.getint('chan.max_local_balance') >= local_balance:
             return False
-        if 'chan.min_local_balance' in config and not config.getint('chan.min_local_balance') <= channel.local_balance:
+        if 'chan.min_local_balance' in config and not config.getint('chan.min_local_balance') <= local_balance:
             return False
-        if 'chan.max_remote_balance' in config and not config.getint('chan.max_remote_balance') >= channel.remote_balance:
+        if 'chan.max_remote_balance' in config and not config.getint('chan.max_remote_balance') >= remote_balance:
             return False
-        if 'chan.min_remote_balance' in config and not config.getint('chan.min_remote_balance') <= channel.remote_balance:
+        if 'chan.min_remote_balance' in config and not config.getint('chan.min_remote_balance') <= remote_balance:
             return False
 
         chan_info = self.lnd.get_chan_info(channel.chan_id)
@@ -379,6 +384,48 @@ class Policies:
             if 'chan.min_sats_ratio' in config and not config.getfloat('chan.min_sats_ratio') <= sats_ratio:
                 return False
 
+        if ('chan.min_count_pending_htlcs' in config and not
+                config.getint('chan.min_count_pending_htlcs') <= metrics.count_pending_htlcs):
+            return False
+        if ('chan.max_count_pending_htlcs' in config and not
+                config.getint('chan.max_count_pending_htlcs') >= metrics.count_pending_htlcs):
+            return False
+
+
+        if any(map(lambda n: "chan." + n in config, pending_htlcs_props)):
+            if metrics.count_pending_htlcs == 0:
+                return False
+
+            next_expiry = metrics.next_pending_htlc_expiry - info.block_height
+
+            if ('chan.min_next_pending_htlc_expiry' in config and not
+                    config.getint('chan.min_next_pending_htlc_expiry') <= next_expiry):
+                return False
+            if ('chan.max_next_pending_htlc_expiry' in config and not
+                    config.getint('chan.max_next_pending_htlc_expiry') >= next_expiry):
+                return False
+
+        return True
+    
+    def match_by_onchain(self, channel, config):
+        accepted = ['min_fee_rate', 'max_fee_rate', 
+                    'conf_target', 'synced_to_chain']
+        
+        for key in config.keys():
+            if key.split(".")[0] == 'onchain' and key.split(".")[1] not in accepted:
+                raise Exception("Unknown property '%s'" % key)
+            
+        if 'onchain.synced_to_chain' in config and not config.getboolean('onchain.synced_to_chain') == self.lnd.get_synced_to_chain():
+            return False
+            
+        fee_rate = self.lnd.get_fee_estimate(config.getint('onchain.conf_target', DEFAULT_CONF_TARGET))
+        
+        if 'onchain.max_fee_rate' in config and not config.getfloat('onchain.max_fee_rate') >= fee_rate:
+            return False
+                    
+        if 'onchain.min_fee_rate' in config and not config.getfloat('onchain.min_fee_rate') <= fee_rate:
+            return False
+        
         return True
 
     # simple minutes/hours/days format, e.g. '5m', '3h'

@@ -1,0 +1,151 @@
+syntax = "proto3";
+
+package circuitbreaker;
+
+import "google/api/annotations.proto";
+
+option go_package = "github.com/lightningequipment/circuitbreaker/circuitbreakerrpc";
+
+service Service {
+    rpc GetInfo (GetInfoRequest) returns (GetInfoResponse) {
+        option (google.api.http) = {
+            get:"/info"
+        };
+    }
+
+    rpc UpdateLimits (UpdateLimitsRequest) returns (UpdateLimitsResponse) {
+        option (google.api.http) = {
+            post: "/updatelimits"
+            body: "*"
+        };
+    }
+
+    // Clear specific limits and use default.
+    rpc ClearLimits (ClearLimitsRequest) returns (ClearLimitsResponse) {
+        option (google.api.http) = {
+            post: "/clearlimits"
+            body: "*"
+        };
+    }
+
+    rpc UpdateDefaultLimit (UpdateDefaultLimitRequest) returns (UpdateDefaultLimitResponse) {
+        option (google.api.http) = {
+            post: "/updatedefaultlimit"
+            body: "*"
+        };
+    }
+
+    rpc ListLimits (ListLimitsRequest) returns (ListLimitsResponse) {
+        option (google.api.http) = {
+            get:"/limits"
+        };        
+    }
+
+    rpc ListForwardingHistory (ListForwardingHistoryRequest) returns (ListForwardingHistoryResponse) {
+        option (google.api.http) = {
+            get:"/forwarding_history"
+        };
+    }
+}
+
+message GetInfoRequest {}
+
+message GetInfoResponse {
+    string node_key = 1;
+    string node_alias = 2;
+    string node_version = 3;
+    
+    string version = 4;
+}
+
+enum Mode {
+    MODE_FAIL = 0;
+    MODE_QUEUE = 1;
+    MODE_QUEUE_PEER_INITIATED = 2;
+    MODE_BLOCK = 3;
+}
+
+message ClearLimitsRequest {
+    repeated string nodes = 1;
+}
+
+message ClearLimitsResponse {}
+
+message UpdateLimitsRequest {
+    map<string, Limit> limits = 1;
+}
+
+message UpdateLimitsResponse {}
+
+message UpdateDefaultLimitRequest {
+    Limit limit = 1;
+}
+
+message UpdateDefaultLimitResponse {}
+
+message ListLimitsRequest {}
+
+message ListLimitsResponse {
+    repeated NodeLimit limits = 5;
+
+    Limit default_limit = 2;
+}
+
+message NodeLimit {
+    string node = 1;
+    string alias = 5;
+
+    // The default limit applies if limit is not set.
+    Limit limit = 2;
+
+    Counter counter_1h = 3;
+    Counter counter_24h = 4;
+    int64 queue_len = 6;
+    int64 pending_htlc_count = 7;
+}
+
+message Limit {
+    int64 max_hourly_rate = 3;
+	int64 max_pending = 5;
+    Mode mode = 6;
+}
+
+message Counter {
+    int64 fail = 1;
+    int64 success = 2;
+    int64 reject = 3;
+}
+
+message ListForwardingHistoryRequest {
+    // The inclusive start time for the query, used to filter HTLCs by the time they were added 
+    // to local incoming channel. If this value is zero, it will be treated as the unix epoch.
+    int64 add_start_time_ns = 1;
+
+    // The exclusive end time for the query, used to filter HTLCs by the time they were added to 
+    // the local incoming channel. If this value is zero, it will be assumed to be the current time.
+    int64 add_end_time_ns = 2; 
+}
+
+message ListForwardingHistoryResponse {
+    repeated Forward forwards = 1; 
+}
+
+message CircuitKey {
+    uint64 short_channel_id = 1;
+    uint32 htlc_index = 2;
+}
+
+message Forward {
+    // The time that the htlc was added to the incoming channel. Note that this value 
+    // may be zero if circuitbreaker restarted while the htlc was in flight - this 
+    // indicates that the value is unknown.
+    uint64 add_time_ns = 1;
+    uint64 resolve_time_ns = 2;
+    bool settled = 3;
+    uint64 incoming_amount = 4;
+    uint64 outgoing_amount = 5;
+    string incoming_peer = 6;
+    CircuitKey incoming_circuit = 7;
+    string outgoing_peer = 8;
+    CircuitKey outgoing_circuit = 9;
+}

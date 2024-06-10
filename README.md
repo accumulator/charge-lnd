@@ -11,8 +11,8 @@ See [INSTALL.md](/INSTALL.md)
 charge-lnd takes only a minimal set of parameters:
 
 ```
-usage: charge-lnd [-h] [--lnddir LNDDIR] [--grpc GRPC] [--electrum-server ELECTRUM_SERVER]
-                  [--dry-run] [--check] [-v] -c CONFIG
+usage: charge-lnd [-h] [--lnddir LNDDIR] [--tlscert TLS_CERT_PATH] [--macaroon MACAROON_PATH] [--grpc GRPC]
+                  [--circuitbreaker CIRCUITBREAKER] [--dry-run] [--check] [-v] [-vv] -c CONFIG
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -22,13 +22,13 @@ optional arguments:
   --macaroon MACAROON_PATH
                         (default [lnddir]/data/chain/bitcoin/mainnet/charge-lnd.macaroon) path to lnd auth macaroons
   --grpc GRPC           (default localhost:10009) lnd gRPC endpoint
-  --electrum-server ELECTRUM_SERVER
-                        (optional, no default) electrum server host:port . Needed for
-                        onchain_fee.
+  --circuitbreaker CIRCUITBREAKER
+                        (optional, no default) circuitbreaker gRPC endpoint host:port
   --dry-run             Do not perform actions (for testing), print what we would do to
                         stdout
   --check               Do not perform actions, only check config file for valid syntax
   -v, --verbose         Be more verbose
+  -vv, --very-verbose   Be very verbose, print every matched policy
   -c CONFIG, --config CONFIG
                         path to config file
 ```
@@ -173,6 +173,10 @@ Currently available properties:
 | **chan.max_htlcs_ratio** | match on amount of HTLCs ratio arriving in channel during activity period|0..1|
 | **chan.min_sats_ratio** | match on amount of sats ratio arriving in channel during activity period|0..1|
 | **chan.max_sats_ratio** | match on amount of sats ratio arriving in channel during activity period|0..1|
+| **chan.min_count_pending_htlcs** | match on the number of pending HTLCs in the channel| # pending htlcs|
+| **chan.max_count_pending_htlcs** | match on the number of pending HTLCs in the channel| # pending htlcs|
+| **chan.min_next_pending_htlc_expiry** | match on the blocks until the next HTLC in the channel expires| # blocks|
+| **chan.max_next_pending_htlc_expiry** | match on the blocks until the next HTLC in the channel expires| # blocks|
 |||
 |NODE||
 | **node.id** | match on node pubkeys - comma separated list of node pubkeys and/or file references|<node pubkey\|file url>[, <node pubkey\|file url>..]|
@@ -194,6 +198,13 @@ Currently available properties:
 | **node.min_shared_ratio_active** | match on active channels ratio with us |0..1|
 | **node.max_shared_ratio_inactive** | match on inactive channels ratio with us|0..1|
 | **node.min_shared_ratio_inactive** | match on inactive channels ratio with us|0..1|
+|||
+|ONCHAIN||
+| **onchain.conf_target** | defines the confirmation target that is used for the determination of the onchain fee rate (default: 6)|# blocks|
+| **onchain.min_fee_rate** | match on the onchain fee rate|# sat per vbyte|
+| **onchain.max_fee_rate** |  match on the onchain fee rate|# sat per vbyte|
+| **onchain.synced_to_chain** |  match on the synced to chain. False if lnd is not synced to chain for 5 minutes.|true\|false|
+
 
 File references should contain 1 item per line
 ### Strategies
@@ -203,11 +214,11 @@ Available strategies:
 |:--|:--|:--|
 |**ignore** | ignores the channel completely||
 |**ignore_fees** | don't make any fee changes, only update htlc size limits and time_lock_delta||
-|**static** | sets fixed base fee and fee rate values for the outbound and inbound side.| **fee_ppm**<br>**base_fee_msat**<br>**inbound_fee_ppm**<br>**inbound_base_fee_msat**|
+|**static** | sets fixed base fee and fee rate values for the outbound and inbound side.| **fee_ppm**<br>**base_fee_msat**<br>**inbound_fee_ppm**<br>**inbound_base_fee_msat**<br>**inbound_level_ppm** if set we calculate `inbound_fee_ppm = min(0,inbound_level_ppm - fee_ppm)`|
 |**match_peer** | sets the same base fee and fee rate values as the peer for the outbound and inbound side.|if **base_fee_msat**, **fee_ppm**, **inbound_base_fee_msat** or **inbound_fee_ppm**  are set the override the peer values|
 |**cost** | calculate cost for opening channel, and set ppm to cover cost when channel depletes.|**cost_factor**|
-|**onchain_fee** | sets the fees to a % equivalent of a standard onchain payment (Requires --electrum-server to be specified.)| **onchain_fee_btc** BTC<br>within **onchain_fee_numblocks** blocks.|
-|**proportional** | sets outbound fee ppm according to balancedness. Inbound fee ppm keeps unchanged.|**min_fee_ppm**<br>**max_fee_ppm**<br>**sum_peer_chans** consider all channels with peer for balance calculations|
+|**onchain_fee** | sets the fees to a % equivalent of a standard onchain payment. We use lnd's internal fee estimate, which is usually based on bitcoind's fee estimate.| **onchain_fee_btc** BTC<br>within **onchain_fee_numblocks** blocks.|
+|**proportional** | sets outbound fee ppm according to balancedness. Inbound Fees are set like using strategy **static**.|**min_fee_ppm**<br>**max_fee_ppm**<br>**sum_peer_chans** consider all channels with peer for balance calculations|
 |**disable** | disables the channel in the outgoing direction. Channel will be re-enabled again if it matches another policy (except when that policy uses an 'ignore' strategy).||
 |**use_config** | process channel according to rules defined in another config file.|**config_file**|
 
@@ -220,8 +231,26 @@ All strategies (except the ignore strategy) will apply the following properties 
 | **max_htlc_msat** | Maximum size (in msat) of HTLC to allow | # msat |
 | **max_htlc_msat_ratio** | Maximum size of HTLC to allow as a fraction of total channel capacity | 0..1 |
 | **time_lock_delta** | Time Lock Delta | # blocks |
-| **min_fee_ppm_delta** | Minimum change in fees (ppm) before updating channel | ppm delta |
+| **min_fee_ppm_delta** | Minimum change in fees (ppm) before updating channel (default: 0) | ppm delta |
+| **min_inbound_fee_ppm_delta** | Minimum change in inbound fees (ppm) before updating channel (default: min_fee_ppm_delta) | ppm delta |
+| **cb_max_hourly_rate** | Circuitbreaker: maximum number of incoming htlcs per hour | # hourly rate |
+| **cb_max_pending** | Circuitbreaker: maximum number of incoming htlcs at the same time | # incoming pending htlcs |
+| **cb_mode** | Circuitbreaker: mode (0 - FAIL; 1 - QUEUE; 2 - QUEUE_PEER_INITIATED; 3 - BLOCK) | 0..3 |
+| **cb_clear_limit** | Circuitbreaker: delete the peer limit and fallback to the default limit | true |
 
+### Circuitbreaker Support
+Optionally, it is also possible to dynamically control the [circuitbreaker](https://github.com/lightningequipment/circuitbreaker) limits for individual peers. However, the default limit of the circuitbreaker cannot currently be changed with `charge-lnd`.
+
+### One channel for the peer
+
+If any of the properties `cb_max_hourly_rate`, `cb_max_pending`, or `cb_mode` are set, the node limit will be adjusted. It should be noted that 0 for the first two properties is interpreted as infinite. Those properties that are not currently set will be set according to the respective default limits. If no node limit is to be set, but a limit has already been set, the reset to the default limit can be performed by setting `cb_clear_limit`.
+
+### Multiple channels for the peer
+
+It can happen that different properties for individual channels are chosen when there are multiple channels with one peer. Since the circuitbreaker monitors its limits at the peer level, we aggregate the properties into a node limit:
+- `cb_max_hourly_rate` and `cb_max_pending` are added, considering that 0 corresponds to infinite.
+- `cb_mode` is set to the most conservative mode, i.e., the first mode from the following list is used: `MODE_BLOCK`, `MODE_FAIL`, `MODE_QUEUE`, `MODE_QUEUE_PEER_INITIATED`.
+- The node limit will be deleted if `cb_clear_limit` is set for a channel.
 
 ## Contributing
 
