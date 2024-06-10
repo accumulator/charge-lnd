@@ -10,7 +10,7 @@ import time
 from .grpc_generated import lightning_pb2_grpc as lnrpc, lightning_pb2 as ln
 from .grpc_generated import router_pb2_grpc as routerrpc, router_pb2 as router
 
-from .strategy import ChanParams, KEEP, DONTCARE
+from .strategy import ChanParams, KEEP, DONTCARE, is_defined
 
 MESSAGE_SIZE_MB = 50 * 1024 * 1024
 
@@ -157,15 +157,15 @@ class Lnd:
         my_policy = chan_info.node1_policy if chan_info.node1_pub == self.get_own_pubkey() else chan_info.node2_policy
         return self.lnstub.UpdateChannelPolicy(ln.PolicyUpdateRequest(
             chan_point=channel_point,
-            base_fee_msat=(chp.base_fee_msat if chp.base_fee_msat is not None else my_policy.fee_base_msat),
-            fee_rate=chp.fee_ppm/1000000 if chp.fee_ppm is not None else my_policy.fee_rate_milli_msat/1000000,
-            min_htlc_msat=(chp.min_htlc_msat if chp.min_htlc_msat is not None else my_policy.min_htlc),
-            min_htlc_msat_specified=chp.min_htlc_msat is not None,
-            max_htlc_msat=(chp.max_htlc_msat if chp.max_htlc_msat is not None else my_policy.max_htlc_msat),
-            time_lock_delta=(chp.time_lock_delta if chp.time_lock_delta is not None else my_policy.time_lock_delta),
+            base_fee_msat=(chp.base_fee_msat if is_defined(chp.base_fee_msat) else my_policy.fee_base_msat),
+            fee_rate=chp.fee_ppm/1000000 if is_defined(chp.fee_ppm) else my_policy.fee_rate_milli_msat/1000000,
+            min_htlc_msat=(chp.min_htlc_msat if is_defined(chp.min_htlc_msat) else my_policy.min_htlc),
+            min_htlc_msat_specified=is_defined(chp.min_htlc_msat),
+            max_htlc_msat=(chp.max_htlc_msat if is_defined(chp.max_htlc_msat) else my_policy.max_htlc_msat),
+            time_lock_delta=(chp.time_lock_delta if is_defined(chp.time_lock_delta) else my_policy.time_lock_delta),
             inbound_fee=ln.InboundFee(
-            base_fee_msat=(chp.inbound_base_fee_msat if chp.inbound_base_fee_msat is not None else my_policy.inbound_fee_base_msat),
-            fee_rate_ppm=(chp.inbound_fee_ppm if chp.inbound_fee_ppm is not None else my_policy.inbound_fee_rate_milli_msat)
+            base_fee_msat=(chp.inbound_base_fee_msat if is_defined(chp.inbound_base_fee_msat) else my_policy.inbound_fee_base_msat),
+            fee_rate_ppm=(chp.inbound_fee_ppm if is_defined(chp.inbound_fee_ppm) else my_policy.inbound_fee_rate_milli_msat)
         )))
 
     def get_txns(self, start_height = None, end_height = None):
