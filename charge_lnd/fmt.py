@@ -48,3 +48,6 @@ def col_err(s):
 
 def col_val(s):
     return str(colored(str(s),'yellow', attrs=['bold']))
+
+def fix_str(s, l):
+    return str(s) + ' ' * (l - len(s))

@@ -3,17 +3,17 @@ import sys
 import functools
 from typing import Optional, Union
 from types import SimpleNamespace
-from enum import Enum
 
 from . import fmt
 from .config import Config
-from .electrum import Electrum
+from .circuitbreaker import CircuitbreakerParams
 
 def debug(message):
     sys.stderr.write(message + "\n")
 
 KEEP='keep'
 DONTCARE='dontcare'
+DEFAULT_CONF_TARGET=6
 
 def is_defined(x):
     return x not in [KEEP, DONTCARE] and x is not None
@@ -26,7 +26,9 @@ class ChanParams(SimpleNamespace):
     time_lock_delta: Optional[Union[str, int]] = DONTCARE
     inbound_base_fee_msat: Optional[Union[str, int]] = DONTCARE
     inbound_fee_ppm: Optional[Union[str, int]] = DONTCARE
+    inbound_level_ppm: Optional[Union[str, int]] = DONTCARE
     disabled: Optional[Union[str, bool]] = DONTCARE
+    circuitbreaker_params: Optional[Union[str, CircuitbreakerParams]] = DONTCARE
 
 def strategy(_func=None,*,name):
     def register_strategy(func):
@@ -58,6 +60,13 @@ class StrategyDelegate:
                 result.time_lock_delta = self.policy.getint('time_lock_delta')
             if result.disabled == DONTCARE:
                 result.disabled = False
+            if result.circuitbreaker_params == DONTCARE:
+                result.circuitbreaker_params = CircuitbreakerParams(
+                    max_hourly_rate=self.policy.getint('cb_max_hourly_rate'),
+                    max_pending=self.policy.getint('cb_max_pending'),
+                    mode=self.policy.getint('cb_mode'),
+                    clear_limit=self.policy.getbool('cb_clear_limit')
+                )
 
             return result
         except Exception as e:
@@ -88,7 +97,8 @@ def strategy_ignore(channel, policy, **kwargs):
         time_lock_delta=KEEP,
         inbound_base_fee_msat=KEEP,
         inbound_fee_ppm=KEEP,
-        disabled=KEEP
+        disabled=KEEP,
+        circuitbreaker_params=KEEP
     )
 
 @strategy(name = 'ignore_fees')
@@ -106,11 +116,14 @@ def strategy_static(channel, policy, **kwargs):
         base_fee_msat=policy.getint('base_fee_msat'),
         fee_ppm=policy.getint('fee_ppm'),
         inbound_base_fee_msat=policy.getint('inbound_base_fee_msat'),
-        inbound_fee_ppm=policy.getint('inbound_fee_ppm')
+        inbound_fee_ppm=policy.getint('inbound_fee_ppm'),
+        inbound_level_ppm=policy.getint('inbound_level_ppm'),
     )
 
 @strategy(name = 'proportional')
 def strategy_proportional(channel, policy, **kwargs):
+    lnd = kwargs['lnd']
+    
     if policy.getint('min_fee_ppm_delta',-1) < 0:
         policy.set('min_fee_ppm_delta', 10) # set delta to 10 if not defined
     ppm_min = policy.getint('min_fee_ppm')
@@ -119,27 +132,25 @@ def strategy_proportional(channel, policy, **kwargs):
         raise Exception('proportional strategy requires min_fee_ppm and max_fee_ppm properties')
 
     if policy.getbool('sum_peer_chans', False):
-        lnd = kwargs['lnd']
-        shared_chans=lnd.get_shared_channels(channel.remote_pubkey)
-        local_balance = 0
-        remote_balance = 0
-        for c in (shared_chans):
-            # Include balance of all active channels with peer
-            if c.active:
-                local_balance += c.local_balance
-                remote_balance += c.remote_balance
+        metrics = lnd.get_peer_metrics(channel.remote_pubkey)    
+        
+        local_balance = metrics.local_active_balance_total() 
+        remote_balance = metrics.remote_active_balance_total() 
         total_balance = local_balance + remote_balance
-        if total_balance == 0:
+        
+        if metrics.channels_active == 0:
             # Sum inactive channels because the node is likely offline with no active channels.
             # When they come back online their fees won't be changed.
-            for c in (shared_chans):
-                if not c.active:
-                    local_balance += c.local_balance
-                    remote_balance += c.remote_balance
+            local_balance += metrics.local_inactive_balance_total()
+            remote_balance += metrics.remote_inactive_balance_total()
         total_balance = local_balance + remote_balance
         ratio = local_balance/total_balance
     else:
-        ratio = channel.local_balance/(channel.local_balance + channel.remote_balance)
+        metrics = lnd.get_chan_metrics(channel.chan_id)
+        
+        local_balance = metrics.local_balance_total()
+        remote_balance = metrics.remote_balance_total()
+        ratio = local_balance/(local_balance + remote_balance)
 
     ppm = int(ppm_min + (1.0 - ratio) * (ppm_max - ppm_min))
     # clamp to 0..inf
@@ -149,7 +160,8 @@ def strategy_proportional(channel, policy, **kwargs):
         base_fee_msat=policy.getint('base_fee_msat'),
         fee_ppm=ppm,
         inbound_base_fee_msat=policy.getint('inbound_base_fee_msat'),
-        inbound_fee_ppm=policy.getint('inbound_fee_ppm')
+        inbound_fee_ppm=policy.getint('inbound_fee_ppm'),
+        inbound_level_ppm=policy.getint('inbound_level_ppm'),
     )
 
 @strategy(name = 'match_peer')
@@ -188,20 +200,19 @@ def strategy_cost(channel, policy, **kwargs):
         base_fee_msat=policy.getint('base_fee_msat'),
         fee_ppm=ppm,
         inbound_base_fee_msat=policy.getint('inbound_base_fee_msat'),
-        inbound_fee_ppm=policy.getint('inbound_fee_ppm')
+        inbound_fee_ppm=policy.getint('inbound_fee_ppm'),
+        inbound_level_ppm=policy.getint('inbound_level_ppm'),
     )
 
 
 @strategy(name = 'onchain_fee')
 def strategy_onchain_fee(channel, policy, **kwargs):
-    if not Electrum.host or not Electrum.port:
-        raise Exception("No electrum server specified, cannot use strategy 'onchain_fee'")
-
+    lnd = kwargs['lnd']
     if policy.getint('min_fee_ppm_delta',-1) < 0:
         policy.set('min_fee_ppm_delta', 10) # set delta to 10 if not defined
 
-    numblocks = policy.getint('onchain_fee_numblocks', 6)
-    sat_per_byte = Electrum.get_fee_estimate(numblocks)
+    numblocks = policy.getint('onchain_fee_numblocks', DEFAULT_CONF_TARGET)
+    sat_per_byte = lnd.get_fee_estimate(numblocks)
     if sat_per_byte < 1:
         return (None, None, None, None, None)
     reference_payment = policy.getfloat('onchain_fee_btc', 0.1)
@@ -211,7 +222,8 @@ def strategy_onchain_fee(channel, policy, **kwargs):
         base_fee_msat=policy.getint('base_fee_msat'),
         fee_ppm=fee_ppm,
         inbound_base_fee_msat=policy.getint('inbound_base_fee_msat'),
-        inbound_fee_ppm=policy.getint('inbound_fee_ppm')
+        inbound_fee_ppm=policy.getint('inbound_fee_ppm'),
+        inbound_level_ppm=policy.getint('inbound_level_ppm'),
     )
 
 
@@ -248,4 +260,6 @@ def strategy_disable(channel, policy, **kwargs):
 
     chanparams = strategy_ignore(channel, policy)
     chanparams.disabled=True
+    # We want to allow changes to the Circuitbreaker params, such as blocking incoming htlcs.
+    chanparams.circuitbreaker_params = DONTCARE
     return chanparams

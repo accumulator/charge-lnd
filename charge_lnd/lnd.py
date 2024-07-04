@@ -1,4 +1,3 @@
-import base64
 import os
 from os.path import expanduser
 import codecs
@@ -6,17 +5,122 @@ import grpc
 import sys
 import re
 import time
+from types import SimpleNamespace
+from typing import Optional
 
 from .grpc_generated import lightning_pb2_grpc as lnrpc, lightning_pb2 as ln
 from .grpc_generated import router_pb2_grpc as routerrpc, router_pb2 as router
+from .grpc_generated import walletkit_pb2_grpc as walletkitrpc, walletkit_pb2 as walletkit
 
-from .strategy import ChanParams, KEEP, DONTCARE
+from .strategy import ChanParams, is_defined
 
 MESSAGE_SIZE_MB = 50 * 1024 * 1024
 
 
 def debug(message):
     sys.stderr.write(message + "\n")
+
+
+class ChannelMetrics(SimpleNamespace):
+    local_balance_settled: int = 0
+    local_balance_unsettled: int = 0
+    local_commit_fee: int = 0
+
+    remote_balance_settled: int = 0
+    remote_balance_unsettled: int = 0
+    remote_commit_fee: int = 0
+
+    count_pending_htlcs: int = 0
+    next_pending_htlc_expiry: Optional[int] = None
+    
+    def local_balance_total(self):
+        return self.local_balance_settled + self.local_balance_unsettled + self.local_commit_fee
+    
+    def remote_balance_total(self):
+        return self.remote_balance_settled + self.remote_balance_unsettled + self.remote_commit_fee
+
+
+class PeerMetrics(SimpleNamespace):
+    channels_active: int = 0
+    channels_inactive: int = 0
+
+    local_active_balance_settled: int = 0
+    local_active_balance_unsettled: int = 0
+    local_active_commit_fee: int = 0
+    local_inactive_balance_settled: int = 0
+    local_inactive_balance_unsettled: int = 0
+    local_inactive_commit_fee: int = 0
+    
+    remote_active_balance_settled: int = 0
+    remote_active_balance_unsettled: int = 0
+    remote_active_commit_fee: int = 0
+    remote_inactive_balance_settled: int = 0
+    remote_inactive_balance_unsettled: int = 0
+    remote_inactive_commit_fee: int = 0
+    
+    def local_active_balance_total(self):
+        return (self.local_active_balance_settled +
+                self.local_active_balance_unsettled +
+                self.local_active_commit_fee)
+    
+    def remote_active_balance_total(self):
+        return (self.remote_active_balance_settled +
+                self.remote_active_balance_unsettled +
+                self.remote_active_commit_fee)
+    
+    def local_inactive_balance_total(self):
+        return (self.local_inactive_balance_settled +
+                self.local_inactive_balance_unsettled +
+                self.local_inactive_commit_fee)
+    
+    def remote_inactive_balance_total(self):
+        return (self.remote_inactive_balance_settled +
+                self.remote_inactive_balance_unsettled +
+                self.remote_inactive_commit_fee)
+    
+    def active_balance_total(self):
+        return self.local_active_balance_total() + self.remote_active_balance_total()
+    
+    def inactive_balance_total(self):
+        return self.local_inactive_balance_total() + self.remote_inactive_balance_total()
+    
+
+def channel_metrics(channel):        
+    return ChannelMetrics(
+        local_balance_settled=channel.local_balance,
+        local_balance_unsettled=sum(h.amount for h in channel.pending_htlcs if not h.incoming),
+        local_commit_fee=channel.commit_fee if channel.initiator else 0,
+        remote_balance_settled=channel.remote_balance,
+        remote_balance_unsettled=sum(h.amount for h in channel.pending_htlcs if h.incoming),
+        remote_commit_fee=channel.commit_fee if not channel.initiator else 0,
+        count_pending_htlcs=len(channel.pending_htlcs),
+        next_pending_htlc_expiry=(min([h.expiration_height for h in channel.pending_htlcs])
+                                  if len(channel.pending_htlcs) != 0
+                                  else None)
+    )
+
+    
+def peer_metrics(channels):
+    pm = PeerMetrics()
+    for channel in channels:
+        cm = channel_metrics(channel)
+        if channel.active:
+            pm.local_active_balance_settled += cm.local_balance_settled
+            pm.local_active_balance_unsettled += cm.local_balance_unsettled
+            pm.local_active_commit_fee += cm.local_commit_fee
+            pm.remote_active_balance_settled += cm.remote_balance_settled
+            pm.remote_active_balance_unsettled += cm.remote_balance_unsettled
+            pm.remote_active_commit_fee += cm.remote_commit_fee
+            pm.channels_active += 1
+        else:
+            pm.local_inactive_balance_settled += cm.local_balance_settled
+            pm.local_inactive_balance_unsettled += cm.local_balance_unsettled
+            pm.local_inactive_commit_fee += cm.local_commit_fee
+            pm.remote_inactive_balance_settled += cm.remote_balance_settled
+            pm.remote_inactive_balance_unsettled += cm.remote_balance_unsettled
+            pm.remote_inactive_commit_fee += cm.remote_commit_fee
+            pm.channels_inactive += 1
+    return pm
 
 
 class Lnd:
@@ -31,15 +135,20 @@ class Lnd:
         grpc_channel = grpc.secure_channel(server, combined_credentials, channel_options)
         self.lnstub = lnrpc.LightningStub(grpc_channel)
         self.routerstub = routerrpc.RouterStub(grpc_channel)
+        self.walletstub = walletkitrpc.WalletKitStub(grpc_channel)
         self.graph = None
         self.info = None
         self.version = None
+        self.synced_to_chain = None
         self.channels = None
         self.node_info = {}
         self.chan_info = {}
         self.fwdhistory = {}
         self.valid = True
+        self.dict_channels = None
         self.peer_channels = {}
+        self.chan_metrics = {}
+        self.peer_metrics = {}
         try:
             self.feereport = self.get_feereport()
         except grpc._channel._InactiveRpcError:
@@ -67,6 +176,19 @@ class Lnd:
 
     def supports_inbound_fees(self):
         return self.min_version(0, 18)
+    
+    def get_synced_to_chain(self):
+        # It can happen that lnd is not synced to the chain for a few seconds, typically 
+        # after a new block has been found or after a restart of lnd. If lnd is still
+        # not synced to the chain after 5 minutes, we set the parameter to false.        
+        if self.synced_to_chain is None:
+            self.synced_to_chain = False
+            for _ in range(300):
+                if self.lnstub.GetInfo(ln.GetInfoRequest()).synced_to_chain:
+                    self.synced_to_chain = True
+                    break
+                time.sleep(1)
+        return self.synced_to_chain
 
     def get_feereport(self):
         feereport = self.lnstub.FeeReport(ln.FeeReportRequest())
@@ -146,6 +268,10 @@ class Lnd:
                 return None
         return self.chan_info[chanid]
 
+    @staticmethod
+    def update_failure_name(code):
+        return ln.UpdateFailure.Name(code)
+
     def update_chan_policy(self, chanid, chp: ChanParams):
         chan_info = self.get_chan_info(chanid)
         if not chan_info:
@@ -157,15 +283,15 @@ class Lnd:
         my_policy = chan_info.node1_policy if chan_info.node1_pub == self.get_own_pubkey() else chan_info.node2_policy
         return self.lnstub.UpdateChannelPolicy(ln.PolicyUpdateRequest(
             chan_point=channel_point,
-            base_fee_msat=(chp.base_fee_msat if chp.base_fee_msat is not None else my_policy.fee_base_msat),
-            fee_rate=chp.fee_ppm/1000000 if chp.fee_ppm is not None else my_policy.fee_rate_milli_msat/1000000,
-            min_htlc_msat=(chp.min_htlc_msat if chp.min_htlc_msat is not None else my_policy.min_htlc),
-            min_htlc_msat_specified=chp.min_htlc_msat is not None,
-            max_htlc_msat=(chp.max_htlc_msat if chp.max_htlc_msat is not None else my_policy.max_htlc_msat),
-            time_lock_delta=(chp.time_lock_delta if chp.time_lock_delta is not None else my_policy.time_lock_delta),
+            base_fee_msat=(chp.base_fee_msat if is_defined(chp.base_fee_msat) else my_policy.fee_base_msat),
+            fee_rate=chp.fee_ppm/1000000 if is_defined(chp.fee_ppm) else my_policy.fee_rate_milli_msat/1000000,
+            min_htlc_msat=(chp.min_htlc_msat if is_defined(chp.min_htlc_msat) else my_policy.min_htlc),
+            min_htlc_msat_specified=is_defined(chp.min_htlc_msat),
+            max_htlc_msat=(chp.max_htlc_msat if is_defined(chp.max_htlc_msat) else my_policy.max_htlc_msat),
+            time_lock_delta=(chp.time_lock_delta if is_defined(chp.time_lock_delta) else my_policy.time_lock_delta),
             inbound_fee=ln.InboundFee(
-            base_fee_msat=(chp.inbound_base_fee_msat if chp.inbound_base_fee_msat is not None else my_policy.inbound_fee_base_msat),
-            fee_rate_ppm=(chp.inbound_fee_ppm if chp.inbound_fee_ppm is not None else my_policy.inbound_fee_rate_milli_msat)
+            base_fee_msat=(chp.inbound_base_fee_msat if is_defined(chp.inbound_base_fee_msat) else my_policy.inbound_fee_base_msat),
+            fee_rate_ppm=(chp.inbound_fee_ppm if is_defined(chp.inbound_fee_ppm) else my_policy.inbound_fee_rate_milli_msat)
         )))
 
     def get_txns(self, start_height = None, end_height = None):
@@ -190,15 +316,31 @@ class Lnd:
             request = ln.ListChannelsRequest()
             self.channels = self.lnstub.ListChannels(request).channels
         return self.channels
-
+    
+    def get_dict_channels(self):
+        if self.dict_channels is None:
+            channels = self.get_channels()
+            self.dict_channels = {}
+            for c in channels:
+                self.dict_channels[c.chan_id] = c
+        return self.dict_channels
+    
+    def get_chan_metrics(self, chanid):
+        if not chanid in self.chan_metrics:
+            self.chan_metrics[chanid] = channel_metrics(self.get_dict_channels()[chanid])
+        return self.chan_metrics[chanid]
+    
     # Get all channels shared with a node
-    def get_shared_channels(self, peerid):
-        # See example: https://github.com/lightningnetwork/lnd/issues/3930#issuecomment-596041700
-        byte_peerid=bytes.fromhex(peerid)
-        if peerid not in self.peer_channels:
-            request = ln.ListChannelsRequest(peer=byte_peerid)
-            self.peer_channels[peerid] = self.lnstub.ListChannels(request).channels
+    def get_peer_channels(self, peerid):
+        if not peerid in self.peer_channels:
+            channels = self.get_channels()
+            self.peer_channels[peerid] = [c for c in channels if c.remote_pubkey == peerid]
         return self.peer_channels[peerid]
+  
+    def get_peer_metrics(self, peerid):
+        if not peerid in self.peer_metrics:
+            self.peer_metrics[peerid] = peer_metrics(self.get_peer_channels(peerid))
+        return self.peer_metrics[peerid]
 
     def min_version(self, major, minor, patch=0):
         p = re.compile("(\d+)\.(\d+)\.(\d+).*")
@@ -236,6 +378,11 @@ class Lnd:
                 chan_point=channel_point,
                 action=action
                 ))
+    
+    # returns the onchain fee in sat per vbyte for a given confirmation target
+    def get_fee_estimate(self, numblocks):
+        # numblocks less than 2 are rejected by walletrpc
+        return self.walletstub.EstimateFee(walletkit.EstimateFeeRequest(conf_target=max(numblocks,2))).sat_per_kw * 4 / 1000
 
     @staticmethod
     def hex_string_to_bytes(hex_string):
