@@ -101,9 +101,12 @@ def main():
             inbound_base_fee_changed = is_defined(chp.inbound_base_fee_msat) \
                 and my_policy.inbound_fee_base_msat != chp.inbound_base_fee_msat
 
+            # We reset the inbound_fee_ppm to the current policy value if the delta is below our
+            # specified required minimum. But we advance the inbound_fee_ppm if it is 0.
             if is_defined(chp.inbound_fee_ppm) \
                 and not inbound_base_fee_changed \
-                and abs(my_policy.inbound_fee_rate_milli_msat - chp.inbound_fee_ppm) < min_inbound_fee_ppm_delta:
+                and abs(my_policy.inbound_fee_rate_milli_msat - chp.inbound_fee_ppm) < min_inbound_fee_ppm_delta \
+                and chp.inbound_fee_ppm != 0:
 
                 chp.inbound_fee_ppm = my_policy.inbound_fee_rate_milli_msat
 
