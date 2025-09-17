@@ -1,4 +1,4 @@
-FROM python:3.9-slim
+FROM python:3.13-slim
 
 ENV GRPC_LOCATION=127.0.0.1:10009
 ENV LND_DIR=~/.lnd
