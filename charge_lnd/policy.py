@@ -261,7 +261,11 @@ class Policies:
                     'max_htlcs_ratio', 'min_htlcs_ratio',
                     'max_sats_ratio', 'min_sats_ratio',
                     'min_count_pending_htlcs', 'max_count_pending_htlcs',
-                    'disabled'
+                    'disabled',
+                    # Flow-based matching criteria
+                    'min_throughput_ratio', 'max_throughput_ratio',
+                    'min_earning_rank', 'max_earning_rank',
+                    'flow_reference_period', 'flow_analysis_period'
                     ] + pending_htlcs_props
         for key in config.keys():
             if key.split(".")[0] == 'chan' and key.split(".")[1] not in accepted:
@@ -405,6 +409,52 @@ class Policies:
                     config.getint('chan.max_next_pending_htlc_expiry') >= next_expiry):
                 return False
 
+        # Flow-based matching criteria
+        if any(key.startswith('chan.') and key.split('.')[1] in ['min_throughput_ratio', 'max_throughput_ratio', 'min_earning_rank', 'max_earning_rank'] for key in config.keys()):
+            # Get flow-based parameters
+            reference_period = config.get('chan.flow_reference_period', '60d')
+            analysis_period = config.get('chan.flow_analysis_period', '7d')
+
+            # Parse periods (convert from "30d" format to days)
+            ref_days = self._parse_period_to_days(reference_period)
+            analysis_days = self._parse_period_to_days(analysis_period)
+
+            # Calculate target throughput and recent performance
+            try:
+                from .strategy import _calculate_target_throughput, _get_recent_performance
+
+                target_throughput = _calculate_target_throughput(self.lnd, ref_days, 5)
+                recent_performance = _get_recent_performance(self.lnd, channel.chan_id, analysis_days)
+
+                # Check throughput ratio criteria
+                if target_throughput > 0:
+                    throughput_ratio = recent_performance / target_throughput
+
+                    if 'chan.min_throughput_ratio' in config:
+                        if throughput_ratio < config.getfloat('chan.min_throughput_ratio'):
+                            return False
+
+                    if 'chan.max_throughput_ratio' in config:
+                        if throughput_ratio > config.getfloat('chan.max_throughput_ratio'):
+                            return False
+
+                # Check earning rank criteria
+                if 'chan.min_earning_rank' in config or 'chan.max_earning_rank' in config:
+                    earning_rank = self._calculate_earning_rank(channel.chan_id, ref_days)
+
+                    if 'chan.min_earning_rank' in config:
+                        if earning_rank < config.getint('chan.min_earning_rank'):
+                            return False
+
+                    if 'chan.max_earning_rank' in config:
+                        if earning_rank > config.getint('chan.max_earning_rank'):
+                            return False
+
+            except Exception as e:
+                # If flow-based calculations fail, don't match
+                debug(f"Flow-based matching failed for channel {channel.chan_id}: {str(e)}")
+                return False
+
         return True
     
     def match_by_onchain(self, channel, config):
@@ -439,3 +489,42 @@ class Policies:
             seconds = int(period[:-1]) * multiplier
 
         return int(seconds)
+
+    def _parse_period_to_days(self, period):
+        """Parse period string like '30d', '7d' to number of days."""
+        if isinstance(period, (int, float)):
+            return period
+
+        if period.endswith('d'):
+            return int(period[:-1])
+        elif period.endswith('h'):
+            return int(period[:-1]) / 24.0
+        elif period.endswith('m'):
+            return int(period[:-1]) / (24.0 * 60)
+        else:
+            # Assume it's already in days
+            return int(period)
+
+    def _calculate_earning_rank(self, chan_id, reference_period_days):
+        """Calculate the earning rank of a channel (1 = highest earner)."""
+        reference_seconds = reference_period_days * 24 * 60 * 60
+
+        # Get all channels and their forwarding history
+        channels = self.lnd.get_channels()
+        channel_earnings = []
+
+        for channel in channels:
+            fwd_history = self.lnd.get_forward_history(channel.chan_id, reference_seconds)
+            total_forwarded = fwd_history['sat_out']
+            channel_earnings.append((channel.chan_id, total_forwarded))
+
+        # Sort by earnings (highest first)
+        channel_earnings.sort(key=lambda x: x[1], reverse=True)
+
+        # Find the rank of our channel (1-based)
+        for rank, (channel_id, _) in enumerate(channel_earnings, 1):
+            if channel_id == chan_id:
+                return rank
+
+        # If channel not found, return a high rank (low priority)
+        return len(channel_earnings) + 1
