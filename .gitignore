@@ -1,2 +1,8 @@
 charge.config
 **/__pycache__
+build/
+*.egg-info/
+dist/
+*.pyc
+venv/
+CLAUDE.md

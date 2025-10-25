@@ -11,11 +11,12 @@ See [INSTALL.md](/INSTALL.md)
 charge-lnd takes only a minimal set of parameters:
 
 ```
-usage: charge-lnd [-h] [--lnddir LNDDIR] [--tlscert TLS_CERT_PATH] [--macaroon MACAROON_PATH] [--grpc GRPC]
+usage: charge-lnd [-h] [--version] [--lnddir LNDDIR] [--tlscert TLS_CERT_PATH] [--macaroon MACAROON_PATH] [--grpc GRPC]
                   [--circuitbreaker CIRCUITBREAKER] [--dry-run] [--check] [-v] [-vv] -c CONFIG
 
 optional arguments:
   -h, --help            show this help message and exit
+  --version             show program's version number and exit
   --lnddir LNDDIR       (default ~/.lnd) lnd directory
   --tlscert TLS_CERT_PATH
                         (default [lnddir]/tls.cert) path to lnd TLS certificate
