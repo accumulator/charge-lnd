@@ -13,6 +13,7 @@ from .policy import Policies
 from .strategy import is_defined
 from .config import Config
 from .circuitbreaker import Circuitbreaker
+from . import __version__
 import charge_lnd.fmt as fmt
 
 def debug(message):
@@ -293,6 +294,9 @@ def print_rpc_error(rpc_err):
 
 def get_argument_parser():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--version",
+                        action="version",
+                        version=f"charge-lnd {__version__}")
     parser.add_argument("--lnddir",
                         default="~/.lnd",
                         dest="lnddir",
