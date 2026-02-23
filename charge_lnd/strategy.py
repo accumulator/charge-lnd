@@ -252,6 +252,138 @@ def strategy_use_config(channel, policy, **kwargs):
 
     return r
 
+@strategy(name = 'flow_based')
+def strategy_flow_based(channel, policy, **kwargs):
+    """
+    Flow-based fee strategy similar to Lightning Terminal's autofees.
+
+    Adjusts fees based on:
+    1. Target throughput calculated from top earning channels
+    2. Recent forwarding performance vs target
+    3. Channel liquidity levels (scarcity pricing)
+    4. Incremental adjustments to avoid fee volatility
+    """
+    lnd = kwargs['lnd']
+
+    # Configuration parameters with defaults
+    reference_period_days = policy.getint('reference_period_days', 60)
+    analysis_period_days = policy.getint('analysis_period_days', 7)
+    top_earners_count = policy.getint('top_earners_count', 5)
+    fee_adjustment_pct = policy.getfloat('fee_adjustment_pct', 5.0)
+    liquidity_threshold = policy.getfloat('liquidity_threshold', 0.125)  # 1/8
+    scarcity_multiplier = policy.getfloat('scarcity_multiplier', 1.2)
+    min_fee_ppm = policy.getint('min_fee_ppm', 1)
+    max_fee_ppm = policy.getint('max_fee_ppm', 5000)
+    base_fee_msat = policy.getint('base_fee_msat', 1000)
+    # Peer consistency option
+    sum_peer_chans = policy.getbool('sum_peer_chans', False)
+
+    # Get current fee as starting point
+    current_fee_ppm = policy.getint('fee_ppm', 100)  # fallback if not set
+    if channel.chan_id in lnd.feereport:
+        (_, current_fee_ppm) = lnd.feereport[channel.chan_id]
+
+    try:
+        # Calculate target throughput from top earning channels
+        target_throughput = _calculate_target_throughput(
+            lnd, reference_period_days, top_earners_count
+        )
+
+        # Get recent forwarding performance
+        if sum_peer_chans:
+            # Calculate performance for all channels to this peer combined
+            peer_channels = lnd.get_peer_channels(channel.remote_pubkey)
+            recent_performance = sum(_get_recent_performance(lnd, ch.chan_id, analysis_period_days)
+                                   for ch in peer_channels)
+            # Use peer metrics for liquidity calculation
+            peer_metrics = lnd.get_peer_metrics(channel.remote_pubkey)
+            total_local = peer_metrics.local_active_balance_total()
+            total_capacity = total_local + peer_metrics.remote_active_balance_total()
+            local_ratio = total_local / total_capacity if total_capacity > 0 else 0
+        else:
+            # Calculate performance for this channel only
+            recent_performance = _get_recent_performance(
+                lnd, channel.chan_id, analysis_period_days
+            )
+            # Use individual channel liquidity
+            local_ratio = channel.local_balance / channel.capacity if channel.capacity > 0 else 0
+
+        # Calculate fee adjustment based on performance vs target
+        performance_ratio = recent_performance / target_throughput if target_throughput > 0 else 0
+
+        # Base fee adjustment logic
+        if performance_ratio < 0.8:  # Underperforming - lower fees to attract traffic
+            adjustment_factor = 1.0 - (fee_adjustment_pct / 100.0)
+        elif performance_ratio > 1.2:  # Overperforming - raise fees to capture value
+            adjustment_factor = 1.0 + (fee_adjustment_pct / 100.0)
+        else:  # Performing within target range - minimal adjustment
+            adjustment_factor = 1.0
+
+        # Apply scarcity pricing if liquidity is low
+        if local_ratio < liquidity_threshold:
+            adjustment_factor *= scarcity_multiplier
+
+        # Calculate new fee
+        new_fee_ppm = int(current_fee_ppm * adjustment_factor)
+
+        # Apply bounds
+        new_fee_ppm = max(min_fee_ppm, min(max_fee_ppm, new_fee_ppm))
+
+        return ChanParams(
+            base_fee_msat=base_fee_msat,
+            fee_ppm=new_fee_ppm,
+            inbound_base_fee_msat=policy.getint('inbound_base_fee_msat'),
+            inbound_fee_ppm=policy.getint('inbound_fee_ppm'),
+            inbound_level_ppm=policy.getint('inbound_level_ppm'),
+        )
+
+    except Exception as e:
+        # Fallback to current fees if calculation fails
+        debug(f"Flow-based strategy failed for channel {channel.chan_id}: {str(e)}")
+        return ChanParams(
+            base_fee_msat=base_fee_msat,
+            fee_ppm=current_fee_ppm,
+            inbound_base_fee_msat=policy.getint('inbound_base_fee_msat'),
+            inbound_fee_ppm=policy.getint('inbound_fee_ppm'),
+            inbound_level_ppm=policy.getint('inbound_level_ppm'),
+        )
+
+
+def _calculate_target_throughput(lnd, reference_period_days, top_earners_count):
+    """Calculate target throughput based on top earning channels."""
+    reference_seconds = reference_period_days * 24 * 60 * 60
+
+    # Get all channels and their forwarding history
+    channels = lnd.get_channels()
+    channel_earnings = []
+
+    for channel in channels:
+        fwd_history = lnd.get_forward_history(channel.chan_id, reference_seconds)
+        # Calculate earnings (simplified - could be more sophisticated)
+        total_forwarded = fwd_history['sat_out']
+        channel_earnings.append(total_forwarded)
+
+    if not channel_earnings:
+        return 0
+
+    # Sort and get top earners
+    channel_earnings.sort(reverse=True)
+    top_earners = channel_earnings[:min(top_earners_count, len(channel_earnings))]
+
+    # Calculate average of top earners as target
+    if top_earners:
+        return sum(top_earners) / len(top_earners)
+    else:
+        return 0
+
+
+def _get_recent_performance(lnd, chan_id, analysis_period_days):
+    """Get recent forwarding performance for a specific channel."""
+    analysis_seconds = analysis_period_days * 24 * 60 * 60
+    fwd_history = lnd.get_forward_history(chan_id, analysis_seconds)
+    return fwd_history['sat_out']
+
+
 @strategy(name = 'disable')
 def strategy_disable(channel, policy, **kwargs):
     lnd = kwargs['lnd']

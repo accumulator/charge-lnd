@@ -129,6 +129,8 @@ fee_ppm = 2
 
 More elaborate examples can be found in the [examples](examples) folder.
 
+For detailed information about the flow-based strategy (similar to Lightning Terminal's autofees), see [FLOW_BASED_STRATEGY.md](FLOW_BASED_STRATEGY.md).
+
 ## Properties
 
 Currently available properties:
@@ -178,6 +180,14 @@ Currently available properties:
 | **chan.min_next_pending_htlc_expiry** | match on the blocks until the next HTLC in the channel expires| # blocks|
 | **chan.max_next_pending_htlc_expiry** | match on the blocks until the next HTLC in the channel expires| # blocks|
 |||
+|FLOW-BASED||
+| **chan.min_throughput_ratio** | match on minimum ratio of recent throughput to target throughput|0..N (e.g., 0.5 = 50% of target)|
+| **chan.max_throughput_ratio** | match on maximum ratio of recent throughput to target throughput|0..N (e.g., 1.5 = 150% of target)|
+| **chan.min_earning_rank** | match on minimum earning rank (1 = highest earner)|# rank|
+| **chan.max_earning_rank** | match on maximum earning rank|# rank|
+| **chan.flow_reference_period** | custom reference period for flow calculations|#s seconds or #m minutes or #h hours or #d days|
+| **chan.flow_analysis_period** | custom analysis period for flow calculations|#s seconds or #m minutes or #h hours or #d days|
+|||
 |NODE||
 | **node.id** | match on node pubkeys - comma separated list of node pubkeys and/or file references|<node pubkey\|file url>[, <node pubkey\|file url>..]|
 | **node.min_channels** | match on number of channels the peer node has|# of channels|
@@ -219,6 +229,7 @@ Available strategies:
 |**cost** | calculate cost for opening channel, and set ppm to cover cost when channel depletes.|**cost_factor**|
 |**onchain_fee** | sets the fees to a % equivalent of a standard onchain payment. We use lnd's internal fee estimate, which is usually based on bitcoind's fee estimate.| **onchain_fee_btc** BTC<br>within **onchain_fee_numblocks** blocks.|
 |**proportional** | sets outbound fee ppm according to balancedness. Inbound Fees are set like using strategy **static**.|**min_fee_ppm**<br>**max_fee_ppm**<br>**sum_peer_chans** consider all channels with peer for balance calculations|
+|**flow_based** | automatically adjusts fees based on forwarding performance vs target throughput, similar to Lightning Terminal's autofees|**reference_period_days** *(default: 60)*<br>**analysis_period_days** *(default: 7)*<br>**top_earners_count** *(default: 5)*<br>**fee_adjustment_pct** *(default: 5.0)*<br>**liquidity_threshold** *(default: 0.125)*<br>**scarcity_multiplier** *(default: 1.2)*<br>**min_fee_ppm** *(default: 1)*<br>**max_fee_ppm** *(default: 5000)*|
 |**disable** | disables the channel in the outgoing direction. Channel will be re-enabled again if it matches another policy (except when that policy uses an 'ignore' strategy).||
 |**use_config** | process channel according to rules defined in another config file.|**config_file**|
 
