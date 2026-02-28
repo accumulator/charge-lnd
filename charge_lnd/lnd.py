@@ -149,10 +149,6 @@ class Lnd:
         self.peer_channels = {}
         self.chan_metrics = {}
         self.peer_metrics = {}
-        try:
-            self.feereport = self.get_feereport()
-        except grpc._channel._InactiveRpcError:
-            self.valid = False
 
     @staticmethod
     def get_credentials(lnd_dir, tls_cert_path, macaroon_path):
@@ -189,13 +185,6 @@ class Lnd:
                     break
                 time.sleep(1)
         return self.synced_to_chain
-
-    def get_feereport(self):
-        feereport = self.lnstub.FeeReport(ln.FeeReportRequest())
-        feedict = {}
-        for channel_fee in feereport.channel_fees:
-            feedict[channel_fee.chan_id] = (channel_fee.base_fee_msat, channel_fee.fee_per_mil)
-        return feedict
 
     # query the forwarding history for a channel covering the last # of seconds
     def get_forward_history(self, chanid, seconds):

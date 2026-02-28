@@ -68,15 +68,15 @@ def main():
         if cb and is_defined(chp.circuitbreaker_params):
             cb.apply_params(chp.circuitbreaker_params, channel.remote_pubkey)
 
-        if channel.chan_id in lnd.feereport:
-            (current_base_fee_msat, current_fee_ppm) = lnd.feereport[channel.chan_id]
-
         chan_info = lnd.get_chan_info(channel.chan_id)
         if not chan_info:
             print ("could not lookup channel info for " + fmt.print_chanid(channel.chan_id).ljust(14) + ", skipping")
             continue
 
         my_policy = chan_info.node1_policy if chan_info.node1_pub == my_pubkey else chan_info.node2_policy
+        
+        current_base_fee_msat = my_policy.fee_base_msat
+        current_fee_ppm = my_policy.fee_rate_milli_msat
 
         min_fee_ppm_delta = policy.getint('min_fee_ppm_delta',0)
 
