@@ -1,9 +1,20 @@
 #!/usr/bin/env python3
 from setuptools import setup, find_packages, find_namespace_packages
+import os
+import re
+
+def get_version():
+    init_file = os.path.join(os.path.dirname(__file__), 'charge_lnd', '__init__.py')
+    with open(init_file, 'r') as f:
+        content = f.read()
+    match = re.search(r"__version__\s*=\s*['\"]([^'\"]+)['\"]", content)
+    if match:
+        return match.group(1)
+    raise RuntimeError("Unable to find version string")
 
 setup(
     name='charge-lnd',
-    version='0.3.1',
+    version=get_version(),
     description='A simple policy based fee manager for LND',
     author='Sander van Grieken',
     author_email='sander@outrightsolutions.nl',
